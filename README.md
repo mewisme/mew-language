@@ -11,6 +11,8 @@ A cat-themed programming language with a runtime written in Rust. Mew is an inte
 
 ## Installation
 
+### Manual Installation
+
 1. Ensure you have Rust installed on your system. If not, install it from [rustup.rs](https://rustup.rs/)
 2. Clone this repository:
    ```bash
@@ -22,6 +24,19 @@ A cat-themed programming language with a runtime written in Rust. Mew is an inte
    cargo build --release
    ```
 
+### Automatic Installation
+
+1. For Windows users, run the following command in PowerShell:
+```powershell
+powershell -c "irm https://mewis.me/install.ps1 | iex"
+```
+
+2. For Linux and macOS users, run the following command in your terminal:
+```bash
+curl -fsSL https://mewis.me/install.sh | bash
+```
+
+
 ## Usage
 
 ### Running the REPL
@@ -29,7 +44,7 @@ A cat-themed programming language with a runtime written in Rust. Mew is an inte
 Simply run the compiled binary without arguments to start the interactive REPL:
 
 ```bash
-./target/release/mew
+mew
 ```
 
 The REPL provides a friendly cat-themed prompt (`🐾 >`) where you can enter Mew code directly.
@@ -39,7 +54,7 @@ The REPL provides a friendly cat-themed prompt (`🐾 >`) where you can enter Me
 To execute a `.mew` file:
 
 ```bash
-./target/release/mew run path/to/your/file.mew
+mew run path/to/your/file.mew
 ```
 
 ## Project Structure
@@ -52,6 +67,10 @@ To execute a `.mew` file:
   - `error.rs` - Error handling
   - `value.rs` - Value representation
   - `bin/` - Additional binary utilities
+- `res/`
+  - `icon.png` - Application icon
+  - `icon.ico` - Application icon (Windows)
+  - `icon.icns` - Application icon (macOS)
 
 ## Dependencies
 
