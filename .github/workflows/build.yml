@@ -1,0 +1,153 @@
+name: Build and Package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-version:
+    name: Check Version and Create Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
+      should_release: ${{ steps.check-tag.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from Cargo.toml
+        id: get-version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -n 1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+
+      - name: Check if tag exists
+        id: check-tag
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION"; then
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION already exists"
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION doesn't exist, will create it"
+          fi
+
+      - name: Create and push tag
+        if: steps.check-tag.outputs.tag_exists == 'false'
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+          echo "Created and pushed tag v$VERSION"
+
+  build:
+    name: Build ${{ matrix.os }}
+    needs: check-version
+    if: ${{ needs.check-version.outputs.should_release == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: mew-linux-x86_64
+            asset_name: mew-linux-x86_64.zip
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: mew-macos-x86_64
+            asset_name: mew-macos-x86_64.zip
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: mew-windows-x86_64
+            asset_name: mew-windows-x86_64.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Enable colored output
+        run: echo "CARGO_TERM_COLOR=always" >> $GITHUB_ENV
+        if: runner.os != 'Windows'
+
+      - name: Enable colored output (Windows)
+        run: echo "CARGO_TERM_COLOR=always" | Out-File -FilePath $Env:GITHUB_ENV -Append
+        if: runner.os == 'Windows'
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare package directory
+        shell: bash
+        run: |
+          mkdir -p package
+          # Copy binary with correct extension
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            cp target/${{ matrix.target }}/release/mew.exe package/
+          else
+            cp target/${{ matrix.target }}/release/mew package/
+          fi
+          # Copy documentation and examples
+          cp README.md LICENSE package/
+          mkdir -p package/examples
+          cp examples/*.mew package/examples/
+
+      - name: Create ZIP archive
+        shell: bash
+        run: |
+          cd package
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            7z a -tzip ../${{ matrix.asset_name }} *
+          else
+            zip -r ../${{ matrix.asset_name }} *
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    name: Create Release
+    needs: [check-version, build]
+    if: ${{ needs.check-version.outputs.should_release == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            mew-linux-x86_64/*.zip
+            mew-macos-x86_64/*.zip
+            mew-windows-x86_64/*.zip
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', needs.check-version.outputs.version) }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
