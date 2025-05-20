@@ -36,6 +36,9 @@ powershell -c "irm https://mewis.me/install.ps1 | iex"
 curl -fsSL https://mewis.me/install.sh | bash
 ```
 
+## Language Documentation
+
+For more information on the language, see the [Language Documentation](docs/SYNTAX.md).
 
 ## Usage
 

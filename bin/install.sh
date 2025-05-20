@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 
 # Mew Language Installer
 # This script downloads the latest release of Mew language from GitHub,
 # extracts it to ~/.mew, and adds it to your PATH environment variable
 
 # Show a welcome message
-echo -e "\033[36m🐱 Mew Language Installer\033[0m"
+echo -e "\033[36m   Mew Language Installer\033[0m"
 echo -e "\033[36m============================\033[0m"
 
 # Detect platform
@@ -108,8 +108,8 @@ if [ -f "$INSTALL_DIR/mew" ]; then
         echo -e "\033[33mInstalled but couldn't verify version. You may need to restart your terminal.\033[0m"
     fi
 else
-    echo -e "\033[31m⚠️ Installation may have failed. Could not find mew in $INSTALL_DIR\033[0m"
+    echo -e "\033[31mInstallation may have failed. Could not find mew in $INSTALL_DIR\033[0m"
 fi
 
-echo -e "\n\033[36m🐱 Thank you for installing Mew!\033[0m"
+echo -e "\n\033[36mThank you for installing Mew!\033[0m"
 echo -e "\033[36mFor help, type 'mew --help' in your terminal\033[0m"

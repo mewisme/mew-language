@@ -1,9 +1,9 @@
-# Mew Language Installer
+﻿# Mew Language Installer
 # This script downloads the latest release of Mew language from GitHub,
 # extracts it to ~/.mew, and adds it to your PATH environment variable
 
 # Show a welcome message
-Write-Host "🐱 Mew Language Installer" -ForegroundColor Cyan
+Write-Host "   Mew Language Installer" -ForegroundColor Cyan
 Write-Host "============================" -ForegroundColor Cyan
 
 # Define installation directory
@@ -87,8 +87,8 @@ if (Test-Path $mewPath) {
         Write-Host "Installed but couldn't verify version. You may need to restart your terminal." -ForegroundColor Yellow
     }
 } else {
-    Write-Host "⚠️ Installation may have failed. Could not find mew.exe in $installDir" -ForegroundColor Red
+    Write-Host "Installation may have failed. Could not find mew.exe in $installDir" -ForegroundColor Red
 }
 
-Write-Host "`n🐱 Thank you for installing Mew!" -ForegroundColor Cyan
+Write-Host "`nThank you for installing Mew!" -ForegroundColor Cyan
 Write-Host "For help, type 'mew --help' in your terminal" -ForegroundColor Cyan
