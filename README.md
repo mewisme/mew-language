@@ -111,13 +111,10 @@ Check out the example programs in the [examples](examples) directory:
 - `rustyline` - For REPL functionality
 - `logos` - For lexing/tokenization
 - `thiserror` - For error handling
-- `lazy_static` - For lazy initialization
 - `clap` - For command-line argument parsing
 - `reqwest` - For network requests and auto-update functionality
 - `semver` - For version management
 - `serde` - For serialization/deserialization
-- `zip` - For package management
-- `dirs` - For filesystem operations
 
 ## Development
 

@@ -16,11 +16,7 @@
 use reqwest;
 use semver::Version;
 use serde::Deserialize;
-use std::fs;
-use std::io::{copy, Cursor};
 use std::process;
-use tempfile;
-use zip::ZipArchive;
 
 #[derive(Deserialize)]
 struct GitHubRelease {
@@ -34,28 +30,12 @@ struct GitHubTag {
 
 struct VersionInfo {
   version: String,
-  tag_name: String,
-}
-
-pub fn check_upgrade_completed() {
-  let user_temp_dir = std::env::temp_dir();
-  let upgrade_marker = user_temp_dir.join("mew_upgraded.txt");
-
-  if upgrade_marker.exists() {
-    if let Ok(content) = fs::read_to_string(&upgrade_marker) {
-      println!("✅ Mew was successfully upgraded to v{}!", content.trim());
-    } else {
-      println!("✅ Mew was successfully upgraded!");
-    }
-
-    let _ = fs::remove_file(upgrade_marker);
-  }
 }
 
 pub fn handle_upgrade(force: bool) -> Result<(), Box<dyn std::error::Error>> {
   let current_version = env!("CARGO_PKG_VERSION");
 
-  let latest_version_info = match get_latest_version_info(current_version)? {
+  match get_latest_version_info(current_version)? {
     Some(info) => info,
     None => {
       if !force {
@@ -71,67 +51,11 @@ pub fn handle_upgrade(force: bool) -> Result<(), Box<dyn std::error::Error>> {
     }
   };
 
-  let temp_dir = tempfile::Builder::new().prefix("mew-upgrade").tempdir()?;
-  let download_url = get_platform_download_url(&latest_version_info.tag_name)?;
-
-  let content = download_with_retry(&download_url, 3)?;
-
-  let temp_target = temp_dir.path().join("mew.new");
-
-  let cursor = Cursor::new(content);
-  let mut archive = match ZipArchive::new(cursor) {
-    Ok(archive) => archive,
-    Err(e) => {
-      println!("Error opening archive: {}", e);
-      println!("This might indicate a corrupted download or unsupported archive format.");
-      return Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::InvalidData,
-        format!("Failed to open ZIP archive: {}", e),
-      )));
-    }
-  };
-
-  let binary_name = if cfg!(target_os = "windows") {
-    "mew.exe"
-  } else {
-    "mew"
-  };
-  let mut binary_path = None;
-
-  for i in 0..archive.len() {
-    let file = archive.by_index(i)?;
-    let name = file.name();
-
-    if name.ends_with(binary_name) {
-      binary_path = Some(name.to_string());
-      break;
-    }
-  }
-
-  let binary_path = binary_path.ok_or_else(|| -> Box<dyn std::error::Error> {
-    Box::new(std::io::Error::new(
-      std::io::ErrorKind::NotFound,
-      format!("Could not find '{}' in the release archive", binary_name),
-    ))
-  })?;
-
-  let mut binary_file = archive.by_name(&binary_path)?;
-  let mut temp_file = fs::File::create(&temp_target)?;
-  copy(&mut binary_file, &mut temp_file)?;
-
-  #[cfg(unix)]
-  {
-    use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(&temp_target)?.permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(&temp_target, perms)?;
-  }
-
   #[cfg(target_os = "windows")]
   {
     let mut command = process::Command::new("powershell");
     command.arg("-c");
-    command.arg(format!("irm https://mewis.me/install.ps1 | iex"));
+    command.arg(format!("irm mewis.me/install.ps1 | iex"));
     let output = command.status()?;
 
     if !output.success() {
@@ -146,13 +70,20 @@ pub fn handle_upgrade(force: bool) -> Result<(), Box<dyn std::error::Error>> {
 
   #[cfg(not(target_os = "windows"))]
   {
-    fs::rename(&temp_target, &target_path)?;
-    println!("Mew has been upgraded to v{}!", latest_version_info.version);
+    let mut command = process::Command::new("bash");
+    command.arg("-c");
+    command.arg(format!("curl -fsSL https://mewis.me/install.sh | bash"));
+    let output = command.status()?;
+
+    if !output.success() {
+      return Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("Installation failed with exit code: {:?}", output.code()),
+      )));
+    }
+
     return Ok(());
   }
-
-  #[allow(unreachable_code)]
-  Ok(())
 }
 
 fn get_latest_version_info(
@@ -188,7 +119,6 @@ fn get_latest_version_info(
   if latest_semver > current_semver {
     Ok(Some(VersionInfo {
       version: latest_version,
-      tag_name: release_info.tag_name,
     }))
   } else {
     Ok(None)
@@ -224,7 +154,6 @@ fn get_latest_version_info_force(
     let tag = &tags[0];
     return Ok(VersionInfo {
       version: tag.name.trim_start_matches('v').to_string(),
-      tag_name: tag.name.clone(),
     });
   }
 
@@ -243,7 +172,6 @@ fn get_latest_version_info_force(
 
   Ok(VersionInfo {
     version: latest_version,
-    tag_name: release_info.tag_name,
   })
 }
 
@@ -275,7 +203,6 @@ fn get_latest_tag_info(
       if latest_semver > current_semver {
         Ok(Some(VersionInfo {
           version: latest_version,
-          tag_name: latest_tag.clone(),
         }))
       } else {
         Ok(None)
@@ -283,86 +210,6 @@ fn get_latest_tag_info(
     }
     Err(_) => Ok(None),
   }
-}
-
-fn get_platform_download_url(tag_name: &str) -> Result<String, Box<dyn std::error::Error>> {
-  let base_url = format!(
-    "https://github.com/mewisme/mew-language/releases/download/{}",
-    tag_name
-  );
-
-  let file_name = if cfg!(target_os = "windows") {
-    "mew-windows-x86_64.zip"
-  } else if cfg!(target_os = "macos") {
-    "mew-macos-x86_64.zip"
-  } else if cfg!(target_os = "linux") {
-    "mew-linux-x86_64.zip"
-  } else {
-    return Err(Box::new(std::io::Error::new(
-      std::io::ErrorKind::Unsupported,
-      format!("Unsupported platform"),
-    )));
-  };
-
-  Ok(format!("{}/{}", base_url, file_name))
-}
-
-fn download_with_retry(
-  url: &str,
-  max_retries: u8,
-) -> Result<bytes::Bytes, Box<dyn std::error::Error>> {
-  let mut retries = 0;
-  let mut last_error: Option<Box<dyn std::error::Error>> = None;
-
-  while retries < max_retries {
-    match reqwest::blocking::get(url) {
-      Ok(response) => {
-        if response.status().is_success() {
-          return match response.bytes() {
-            Ok(bytes) => Ok(bytes),
-            Err(e) => {
-              println!("Error reading response body: {}", e);
-              last_error = Some(Box::new(e));
-              retries += 1;
-              if retries < max_retries {
-                println!("Retrying download ({}/{})", retries, max_retries);
-                std::thread::sleep(std::time::Duration::from_secs(1));
-              }
-              continue;
-            }
-          };
-        } else {
-          println!("HTTP error: {}", response.status());
-          last_error = Some(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("HTTP error: {}", response.status()),
-          )));
-          retries += 1;
-          if retries < max_retries {
-            println!("Retrying download ({}/{})", retries, max_retries);
-            std::thread::sleep(std::time::Duration::from_secs(1));
-          }
-        }
-      }
-      Err(e) => {
-        println!("Download error: {}", e);
-        let io_error = std::io::Error::new(std::io::ErrorKind::Other, e.to_string());
-        last_error = Some(Box::new(io_error));
-        retries += 1;
-        if retries < max_retries {
-          println!("Retrying download ({}/{})", retries, max_retries);
-          std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-      }
-    }
-  }
-
-  Err(last_error.unwrap_or_else(|| {
-    Box::new(std::io::Error::new(
-      std::io::ErrorKind::Other,
-      "Failed to download file after multiple attempts",
-    ))
-  }))
 }
 
 pub fn check_for_updates(

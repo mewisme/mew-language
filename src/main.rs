@@ -25,9 +25,6 @@ use cli::{Cli, Commands};
 use std::process;
 
 fn main() {
-  // Check if there was an upgrade completed recently
-  cli::check_upgrade_completed();
-
   let cli = Cli::parse();
 
   match &cli.command {
