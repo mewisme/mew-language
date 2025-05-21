@@ -27,6 +27,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Get version from Cargo.toml
         id: get-version
         run: |
@@ -51,11 +54,18 @@ jobs:
         run: |
           VERSION="${{ steps.get-version.outputs.version }}"
           RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/${{ github.repository }}/releases/tags/v$VERSION)
+          echo "should_release=true" >> $GITHUB_OUTPUT
           if [[ "$RELEASE_EXISTS" == "200" ]]; then
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "Release for v$VERSION already exists, stopping workflow"
+            echo "Release for v$VERSION already exists, will delete it and recreate"
+            # Get release ID
+            RELEASE_ID=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/tags/v$VERSION | jq -r .id)
+            if [[ "$RELEASE_ID" != "null" ]]; then
+              # Delete the existing release
+              curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
+              echo "Deleted existing release with ID: $RELEASE_ID"
+            fi
           else
-            echo "should_release=true" >> $GITHUB_OUTPUT
             echo "No release found for v$VERSION, continuing with build and release"
           fi
 
@@ -87,12 +97,12 @@ jobs:
             target: x86_64-pc-windows-msvc
             artifact_name: mew-windows-x86_64
             asset_name: mew-windows-x86_64.zip
-          - os: windows-latest
-            target: aarch64-pc-windows-msvc
-            artifact_name: mew-windows-arm64
-            asset_name: mew-windows-arm64.zip
 
           # Linux builds
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            artifact_name: mew-linux-x86
+            asset_name: mew-linux-x86.zip
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: mew-linux-x86_64
@@ -125,6 +135,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib pkg-config libssl-dev
+          if [[ "${{ matrix.target }}" == "i686-unknown-linux-gnu" ]]; then
+            # For cross-compiling OpenSSL for 32-bit
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
+            sudo apt-get install -y libssl-dev:i386
+            echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+            echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+            echo "OPENSSL_LIB_DIR=/usr/lib/i386-linux-gnu" >> $GITHUB_ENV
+            echo "CARGO_TARGET_I686_UNKNOWN_LINUX_GNU_LINKER=gcc" >> $GITHUB_ENV
+            echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          fi
           if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
             # For cross-compiling with OpenSSL
@@ -195,7 +216,7 @@ jobs:
           files: |
             mew-windows-x86/*.zip
             mew-windows-x86_64/*.zip
-            mew-windows-arm64/*.zip
+            mew-linux-x86/*.zip
             mew-linux-x86_64/*.zip
             mew-linux-arm64/*.zip
             mew-macos-x86_64/*.zip
