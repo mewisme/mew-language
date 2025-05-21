@@ -271,22 +271,20 @@ impl MewLexer {
         if self.match_char('&') {
           self.add_token(TokenKind::And)
         } else {
-          return Err(MewError::syntax(format!(
-            "Unexpected character '&' at line {}, column {}",
-            self.line,
-            self.column - 1
-          )));
+          return Err(MewError::syntax_at(
+            format!("Unexpected character '&'"),
+            Location::new(self.line, self.column - 1),
+          ));
         }
       }
       '|' => {
         if self.match_char('|') {
           self.add_token(TokenKind::Or)
         } else {
-          return Err(MewError::syntax(format!(
-            "Unexpected character '|' at line {}, column {}",
-            self.line,
-            self.column - 1
-          )));
+          return Err(MewError::syntax_at(
+            format!("Unexpected character '|'"),
+            Location::new(self.line, self.column - 1),
+          ));
         }
       }
 
@@ -310,12 +308,10 @@ impl MewLexer {
         } else if c.is_ascii_alphabetic() || c == '_' {
           self.identifier()?;
         } else {
-          return Err(MewError::syntax(format!(
-            "Unexpected character '{}' at line {}, column {}",
-            c,
-            self.line,
-            self.column - 1
-          )));
+          return Err(MewError::syntax_at(
+            format!("Unexpected character '{}'", c),
+            Location::new(self.line, self.column - 1),
+          ));
         }
       }
     }
@@ -341,12 +337,11 @@ impl MewLexer {
           '\'' => value.push('\''),
           '"' => value.push('"'),
           _ => {
-            let msg = format!(
-              "Invalid escape sequence at line {}, column {}",
-              self.line,
-              self.column - 1
-            );
-            return Err(MewError::syntax(msg));
+            let msg = format!("Invalid escape sequence");
+            return Err(MewError::syntax_at(
+              msg,
+              Location::new(self.line, self.column - 1),
+            ));
           }
         }
       } else if c == '\n' {
@@ -359,10 +354,10 @@ impl MewLexer {
     }
 
     if self.is_at_end() {
-      return Err(MewError::syntax(format!(
-        "Unterminated string at line {}, column {}",
-        self.line, self.column
-      )));
+      return Err(MewError::syntax_at(
+        format!("Unterminated string"),
+        Location::new(self.line, self.column),
+      ));
     }
 
     // Consume the closing quote
@@ -402,12 +397,10 @@ impl MewLexer {
     let value = match f64::from_str(&lexeme) {
       Ok(v) => v,
       Err(_) => {
-        return Err(MewError::syntax(format!(
-          "Invalid number '{}' at line {}, column {}",
-          lexeme,
-          self.line,
-          self.column - lexeme.len()
-        )))
+        return Err(MewError::syntax_at(
+          format!("Invalid number '{}'", lexeme),
+          Location::new(self.line, self.column - lexeme.len()),
+        ))
       }
     };
 

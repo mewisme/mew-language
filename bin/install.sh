@@ -31,8 +31,11 @@ else
 fi
 
 # Define installation directory
+
+ZIP_FILE="mew-$ARCH_FILE.zip"
+
 INSTALL_DIR="$HOME/.mew"
-TMP_FILE="/tmp/mew-$ARCH_FILE.zip"
+TMP_FILE="/tmp/$ZIP_FILE"
 
 # Create installation directory if it doesn't exist
 mkdir -p "$INSTALL_DIR"
@@ -46,12 +49,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Extract download URL and version
-DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "\"browser_download_url\": \"[^\"]*mew-$ARCH_FILE.zip\"" | cut -d\" -f4)
-VERSION=$(echo "$RELEASE_INFO" | grep -o "\"tag_name\": \"[^\"]*\"" | cut -d\" -f4)
+TAG_NAME=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r --arg name "$ZIP_FILE" '.assets[] | select(.name == $name) | .browser_download_url')
 
 if [ -z "$DOWNLOAD_URL" ]; then
-    echo -e "\033[31mCould not find mew-$ARCH_FILE.zip in the latest release\033[0m"
+    echo -e "\033[31mCould not find $ZIP_FILE in the latest release\033[0m"
     exit 1
 fi
 

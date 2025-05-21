@@ -27,13 +27,17 @@ use std::process;
 fn main() {
   let cli = Cli::parse();
 
-  match &cli.command {
-    Some(Commands::Run { file_path }) => {
-      if let Err(e) = cli::run_file(file_path) {
-        eprintln!("hiss! Error: {}", e);
-        process::exit(1);
-      }
+  // First check if a file path was provided directly
+  if let Some(file_path) = cli.file_path {
+    if let Err(e) = cli::run_file(&file_path) {
+      eprintln!("hiss! Error: {}", e);
+      process::exit(1);
     }
+    return;
+  }
+
+  // If no file path, check for subcommands
+  match &cli.command {
     Some(Commands::Version) => {
       cli::handle_version();
     }
@@ -53,6 +57,7 @@ fn main() {
       }
     }
     None => {
+      // No file path and no command, start REPL
       if let Err(e) = cli::run_repl() {
         eprintln!("hiss! Error: {}", e);
         process::exit(1);

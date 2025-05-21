@@ -1,0 +1,34 @@
+// Parse a JSON string into a Mew object
+catlt person = MewJ.sniff('{"name":"Whiskers","age":3,"likes":["milk","yarn","naps"]}');
+purr(person.name);        // Prints: Whiskers
+purr(person.age);         // Prints: 3
+purr(person.likes[0]);    // Prints: milk
+
+// Create an object and convert it to a JSON string
+catlt theCat = {
+  name: "Mittens",
+  breed: "Tabby",
+  toys: ["mouse", "feather", "box"],
+  info: {
+    vaccinated: true,
+    adopted: true
+  }
+};
+
+// Convert to JSON without pretty-printing
+catlt jsonStr = MewJ.mewify(theCat);
+purr(jsonStr);  // Prints compact JSON
+
+// Convert to JSON with pretty-printing
+catlt prettyJson = MewJ.mewify(theCat, 2);
+purr(prettyJson);  // Prints formatted JSON with indentation
+
+// Handling special cases
+catlt specialValues = {
+  nothing: null,
+  missing: undefined,
+  infiniteCats: "Infinity"
+};
+
+// undefined becomes null, Infinity causes an error
+purr(MewJ.mewify(specialValues));

@@ -135,10 +135,8 @@ impl fmt::Display for Value {
   }
 }
 
-// Statement and Expression types - will be defined in detail in the parser module
 #[derive(Debug, Clone)]
 pub enum Stmt {
-  // Statement types will be defined here
   Expression(Expr),
   Print(Expr),
   VarDeclaration(String, Option<Expr>, bool), // name, initializer, is_const
@@ -154,7 +152,6 @@ pub enum Stmt {
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-  // Expression types will be defined here
   Literal(Value),
   Variable(String),
   Assignment(String, Box<Expr>),
@@ -193,7 +190,6 @@ pub enum UnaryOp {
   Not,
 }
 
-// Environment for variable scoping
 #[derive(Debug, Clone)]
 pub struct Environment {
   values: HashMap<String, (Value, bool)>, // (value, is_const)

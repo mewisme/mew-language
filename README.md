@@ -34,7 +34,7 @@ A cat-themed programming language with a runtime written in Rust. Mew is an inte
     ```
 
 2. For Linux and macOS users
-- Linux users — The `unzip` package is required to install Mew. Use `sudo apt install unzip` to install the package.
+- Linux users — The `unzip` and `jq` package is required to install Mew. Use `sudo apt install unzip jq` to install the package.
 - Run the following command in your terminal:
     ```bash
     curl -fsSL mewis.me/install.sh | bash
@@ -51,7 +51,7 @@ For more information on the language, see the [Language Documentation](docs/SYNT
 Mew provides a comprehensive set of CLI commands:
 
 - `mew` - Start the interactive REPL
-- `mew run <file>` - Execute a .mew file
+- `mew <file>` - Execute a .mew file
 - `mew init [name]` - Initialize a new Mew project (creates project structure with mew.toml). Optional name parameter skips the prompt.
 - `mew start` - Run the start script defined in mew.toml
 - `mew version` - Display the current version
@@ -72,7 +72,7 @@ The REPL provides a friendly cat-themed prompt (`🐾 >`) where you can enter Me
 To execute a `.mew` file:
 
 ```bash
-mew run path/to/your/file.mew
+mew path/to/your/file.mew
 ```
 
 ### Examples

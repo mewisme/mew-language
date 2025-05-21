@@ -131,7 +131,10 @@ impl Parser {
     if !self.check(TokenKind::RightParen) {
       loop {
         if parameters.len() >= 255 {
-          return Err(MewError::syntax("Cannot have more than 255 parameters."));
+          return Err(MewError::syntax_at(
+            "Cannot have more than 255 parameters.",
+            self.peek().location,
+          ));
         }
 
         parameters.push(self.consume_identifier("Expected parameter name.")?);
@@ -262,8 +265,6 @@ impl Parser {
       "Expected ';' after do-while statement.",
     )?;
 
-    // Transform into a standard while for simplicity
-    // In a real implementation, this would be a separate DoWhile statement type
     Ok(Stmt::Block(vec![
       body.clone(), // Clone before using it again
       Rc::new(RefCell::new(Stmt::While(condition, body))),
@@ -273,25 +274,19 @@ impl Parser {
   fn for_statement(&mut self) -> MewResult<Stmt> {
     self.consume(TokenKind::LeftParen, "Expected '(' after 'fur'.")?;
 
-    // Handle initializer
     let initializer;
-
-    // Check for variable declaration (let/var/const)
     if self.match_tokens(&[TokenKind::Var, TokenKind::Let, TokenKind::Const]) {
       let token = self.previous();
       let is_const = token.kind == TokenKind::Const;
 
-      // Get the variable name
       let var_name = self.consume_identifier("Expected variable name.")?;
 
-      // Check for initializer (=)
       let var_initializer = if self.match_tokens(&[TokenKind::Equal]) {
         Some(self.expression()?)
       } else {
         None
       };
 
-      // Check for in/of without requiring semicolon
       if self.match_tokens(&[TokenKind::In]) || self.match_tokens(&[TokenKind::Of]) {
         let is_of = self.previous().kind == TokenKind::Of;
         return self.for_in_of_statement(
@@ -300,7 +295,6 @@ impl Parser {
         );
       }
 
-      // If it's a regular for loop, consume semicolon
       self.consume(
         TokenKind::Semicolon,
         "Expected ';' after variable declaration.",
@@ -308,17 +302,11 @@ impl Parser {
 
       initializer = Some(Stmt::VarDeclaration(var_name, var_initializer, is_const));
     } else if self.match_tokens(&[TokenKind::Semicolon]) {
-      // Empty initializer
       initializer = None;
     } else {
-      // Expression initializer
       initializer = Some(self.expression_statement()?);
-
-      // After an expression statement, we could have a for-in/of loop too
-      // But the expression_statement() already consumed the semicolon, so we can't check here
     }
 
-    // Standard for loop
     let condition = if !self.check(TokenKind::Semicolon) {
       self.expression()?
     } else {
@@ -334,10 +322,8 @@ impl Parser {
 
     self.consume(TokenKind::RightParen, "Expected ')' after for clauses.")?;
 
-    // Create the loop body
     let mut body = self.statement()?;
 
-    // Add the increment to the body if it exists
     if let Some(inc) = increment {
       body = Stmt::Block(vec![
         Rc::new(RefCell::new(body)),
@@ -345,10 +331,8 @@ impl Parser {
       ]);
     }
 
-    // Add the condition
     body = Stmt::While(condition, Rc::new(RefCell::new(body)));
 
-    // Add the initializer if it exists
     if let Some(init) = initializer {
       body = Stmt::Block(vec![
         Rc::new(RefCell::new(init)),
@@ -685,7 +669,6 @@ impl Parser {
       return Ok(Expr::Unary(operator, Box::new(right)));
     }
 
-    // Handle prefix increment/decrement (++x, --x)
     if self.match_tokens(&[TokenKind::Increment, TokenKind::Decrement]) {
       let is_increment = match self.previous().kind {
         TokenKind::Increment => true,
@@ -754,7 +737,10 @@ impl Parser {
     if !self.check(TokenKind::RightParen) {
       loop {
         if arguments.len() >= 255 {
-          return Err(MewError::syntax("Cannot have more than 255 arguments."));
+          return Err(MewError::syntax_at(
+            "Cannot have more than 255 arguments.",
+            self.peek().location,
+          ));
         }
 
         arguments.push(self.expression()?);
@@ -857,7 +843,6 @@ impl Parser {
           break;
         }
 
-        // Allow trailing comma
         if self.check(TokenKind::RightBracket) {
           break;
         }
@@ -877,7 +862,6 @@ impl Parser {
 
     if !self.check(TokenKind::RightBrace) {
       loop {
-        // Property key
         let key = if self.check_type_variant::<String>(&TokenKind::Identifier(String::new())) {
           if self.check_next(TokenKind::Colon) {
             if let TokenKind::Identifier(name) = &self.advance().kind {
@@ -904,7 +888,6 @@ impl Parser {
 
         self.consume(TokenKind::Colon, "Expected ':' after property name.")?;
 
-        // Property value
         let value = self.expression()?;
 
         properties.push((key, value));
@@ -913,7 +896,6 @@ impl Parser {
           break;
         }
 
-        // Allow trailing comma
         if self.check(TokenKind::RightBrace) {
           break;
         }
@@ -945,7 +927,10 @@ impl Parser {
     if !self.check(TokenKind::RightParen) {
       loop {
         if parameters.len() >= 255 {
-          return Err(MewError::syntax("Cannot have more than 255 parameters."));
+          return Err(MewError::syntax_at(
+            "Cannot have more than 255 parameters.",
+            self.peek().location,
+          ));
         }
 
         parameters.push(self.consume_identifier("Expected parameter name.")?);
@@ -958,13 +943,11 @@ impl Parser {
 
     self.consume(TokenKind::RightParen, "Expected ')' after parameters.")?;
 
-    // Handle arrow functions
     if self.match_tokens(&[TokenKind::Arrow]) {
       if self.match_tokens(&[TokenKind::LeftBrace]) {
         let body = self.block()?;
         return Ok(Expr::Function(name, parameters, body));
       } else {
-        // Expression body
         let expr = self.expression()?;
         let body = vec![Rc::new(RefCell::new(Stmt::Return(Some(expr))))];
         return Ok(Expr::Function(name, parameters, body));
@@ -976,8 +959,6 @@ impl Parser {
 
     Ok(Expr::Function(name, parameters, body))
   }
-
-  // Utility methods
 
   fn match_tokens(&mut self, types: &[TokenKind]) -> bool {
     for t in types {
@@ -994,11 +975,11 @@ impl Parser {
     if self.check(kind) {
       Ok(self.advance())
     } else {
-      Err(MewError::syntax(format!(
-        "{} Got {:?}",
-        message,
-        self.peek().kind
-      )))
+      let token = self.peek();
+      Err(MewError::syntax_at(
+        format!("{} Got {:?}", message, token.kind),
+        token.location,
+      ))
     }
   }
 
@@ -1011,7 +992,8 @@ impl Parser {
       }
     }
 
-    Err(MewError::syntax(message))
+    let token = self.peek();
+    Err(MewError::syntax_at(message, token.location))
   }
 
   fn check(&self, kind: TokenKind) -> bool {
@@ -1022,14 +1004,13 @@ impl Parser {
     match (&self.peek().kind, &kind) {
       (TokenKind::Number(_), TokenKind::Number(_)) => true,
       (TokenKind::String(_), TokenKind::String(_)) => true,
-      (TokenKind::Boolean(_), TokenKind::Boolean(_)) => true,
+      (TokenKind::Boolean(a), TokenKind::Boolean(b)) => a == b,
       (TokenKind::Identifier(_), TokenKind::Identifier(_)) => true,
       (a, b) if a == b => true,
       _ => false,
     }
   }
 
-  // Helper method to check if a token is a specific variant without checking the value
   fn check_type_variant<T: 'static>(&self, _pattern: &TokenKind) -> bool {
     if self.is_at_end() {
       return false;

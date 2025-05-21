@@ -1,0 +1,77 @@
+// Length Property Examples
+// Showing how to use .length with arrays and strings in Mew
+
+// ========== Array Length ==========
+purr("===== Array Length =====");
+
+// Create an array
+catlt pawColors = ["orange", "black", "white", "calico", "tabby"];
+
+// Get array length
+purr("Array pawColors: " + pawColors);
+purr("pawColors.length = " + pawColors.length);
+purr("You can use .length to iterate through an array:");
+
+// Iterate through array using length - fixed indexing
+catlt i = 0;
+mewhile (i < pawColors.length) {
+  purr("pawColors[" + i + "] = " + pawColors[i]);
+  i = i + 1;
+}
+purr("");
+
+// ========== String Length ==========
+purr("===== String Length =====");
+
+// Get string length
+catlt meow = "Meow!";
+catlt longPurr = "Purrrrrrrrrrrr";
+
+purr("String 'Meow!' length: " + meow.length);
+purr("String 'Purrrrrrrrrrrr' length: " + longPurr.length);
+
+// Use length to check for empty strings
+cat isEmptyString(str) {
+  return str.length == 0;
+}
+
+purr("Is 'Meow!' empty? " + isEmptyString(meow));
+purr("Is '' empty? " + isEmptyString(""));
+purr("");
+
+// ========== Practical Examples ==========
+purr("===== Practical Examples =====");
+
+// Example 1: Padding a string to a certain length
+cat padString(str, targetLength, padChar) {
+  meow? (str.length >= targetLength) {
+    return str;
+  }
+  
+  catlt padding = "";
+  catlt i = 0;
+  mewhile (i < targetLength - str.length) {
+    padding = padding + padChar;
+    i = i + 1;
+  }
+  
+  return str + padding;
+}
+
+purr("Padded 'Cat' to 10 chars: '" + padString("Cat", 10, "-") + "'");
+purr("");
+
+// Example 2: Get last element of an array
+cat getLastElement(arr) {
+  meow? (arr.length == 0) {
+    return null;
+  }
+  
+  catlt lastIndex = arr.length - 1;
+  return arr[lastIndex];
+}
+
+purr("Last color in pawColors: " + getLastElement(pawColors));
+purr("");
+
+purr("====== End of Length Examples ======"); 

@@ -1,0 +1,122 @@
+// Mewth Tutorial
+// A comprehensive guide to using the cat-themed Math object
+
+// ========== Introduction ==========
+purr("====== Mewth: The Cat-themed Math Object ======");
+purr("Mewth provides mathematical operations with cat-themed method names");
+purr("");
+
+// ========== Basic Functions ==========
+purr("===== Basic Mathematical Operations =====");
+
+// Floor operation
+purr("Mewth.pounce(3.7) = " + Mewth.pounce(3.7));
+purr("Like a cat pouncing down, Mewth.pounce() rounds down to the nearest integer");
+purr("");
+
+// Ceiling operation
+purr("Mewth.leap(3.2) = " + Mewth.leap(3.2));
+purr("Like a cat leaping up, Mewth.leap() rounds up to the nearest integer");
+purr("");
+
+// Rounding operation
+purr("Mewth.curl(4.5) = " + Mewth.curl(4.5));
+purr("Mewth.curl(4.4) = " + Mewth.curl(4.4));
+purr("Like a cat curling into a ball, Mewth.curl() rounds to the nearest integer");
+purr("");
+
+// Absolute value
+purr("Mewth.lick(9) = " + Mewth.lick(9));
+purr("Mewth.lick(-9) = " + Mewth.lick(-9));
+purr("Like a cat licking something clean, Mewth.lick() returns the absolute value");
+purr("");
+
+// ========== Comparison Functions ==========
+purr("===== Comparison Operations =====");
+
+// Maximum value
+purr("Mewth.alpha(1, 5, 3) = " + Mewth.alpha(1, 5, 3));
+purr("Like the alpha cat in the group, Mewth.alpha() returns the largest value");
+purr("");
+
+// Minimum value
+purr("Mewth.kitten(1, 5, 3) = " + Mewth.kitten(1, 5, 3));
+purr("Like the smallest kitten in the litter, Mewth.kitten() returns the smallest value");
+purr("");
+
+// ========== Advanced Functions ==========
+purr("===== Advanced Mathematical Operations =====");
+
+// Random number generation
+purr("Mewth.chase() = " + Mewth.chase());
+purr("Mewth.chase() = " + Mewth.chase());
+purr("Like a cat chasing unpredictably, Mewth.chase() returns a random number between 0 and 1");
+purr("");
+
+// Square root
+purr("Mewth.dig(25) = " + Mewth.dig(25));
+purr("Mewth.dig(16) = " + Mewth.dig(16));
+purr("Like a cat digging to get to the root, Mewth.dig() calculates the square root");
+purr("");
+
+// Power function
+purr("Mewth.scratch(2, 3) = " + Mewth.scratch(2, 3));
+purr("Mewth.scratch(5, 2) = " + Mewth.scratch(5, 2));
+purr("Like a cat scratching with power, Mewth.scratch(x, y) raises x to the power of y");
+purr("");
+
+// Sign function
+purr("Mewth.tailDirection(-5) = " + Mewth.tailDirection(-5));
+purr("Mewth.tailDirection(0) = " + Mewth.tailDirection(0));
+purr("Mewth.tailDirection(5) = " + Mewth.tailDirection(5));
+purr("Like a cat's tail pointing up (+1), down (-1), or neutral (0), Mewth.tailDirection() returns the sign of a number");
+purr("");
+
+// ========== Real-world Examples ==========
+purr("===== Practical Examples =====");
+
+// Example 1: Calculate the area of a rectangle and round to nearest integer
+catlt height = 9.8;
+catlt width = 5.2;
+catlt area = Mewth.curl(height * width);
+purr("Example 1: Calculate the area of a rectangle");
+purr("Height: " + height + ", Width: " + width);
+purr("Area (rounded): " + area + " square units");
+purr("");
+
+// Example 2: Generate a random integer between min and max
+catlt min = 1;
+catlt max = 10;
+catlt randomNum = Mewth.curl(min + Mewth.chase() * (max - min));
+purr("Example 2: Generate a random number between " + min + " and " + max);
+purr("Random number: " + randomNum);
+purr("");
+
+// Example 3: Calculate the hypotenuse of a right triangle
+catlt a = 3;
+catlt b = 4;
+catlt hypotenuse = Mewth.dig(Mewth.scratch(a, 2) + Mewth.scratch(b, 2));
+purr("Example 3: Calculate the hypotenuse of a right triangle");
+purr("Side A: " + a + ", Side B: " + b);
+purr("Hypotenuse: " + hypotenuse);
+purr("");
+
+// Example 4: Determine if a value is positive, negative or zero
+cat checkValue(value) {
+    catlt direction = Mewth.tailDirection(value);
+    meow? (direction > 0) {
+        return "positive (tail up)";
+    } meowse? (direction < 0) {
+        return "negative (tail down)";
+    } hiss {
+        return "zero (tail neutral)";
+    }
+}
+
+purr("Example 4: Determine the sign of a number");
+purr("-42 is " + checkValue(-42));
+purr("0 is " + checkValue(0));
+purr("3.14 is " + checkValue(3.14));
+purr("");
+
+purr("====== End of Mewth Tutorial ======"); 

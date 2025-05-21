@@ -18,17 +18,17 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum MewError {
-  #[error("Syntax error: {0}")]
-  Syntax(String),
+  #[error("Syntax error at {1}: {0}")]
+  Syntax(String, Location),
 
-  #[error("Runtime error: {0}")]
-  Runtime(String),
+  #[error("Runtime error at {1}: {0}")]
+  Runtime(String, Location),
 
-  #[error("Type error: {0}")]
-  Type(String),
+  #[error("Type error at {1}: {0}")]
+  Type(String, Location),
 
-  #[error("Name error: {0}")]
-  Name(String),
+  #[error("Name error at {1}: {0}")]
+  Name(String, Location),
 
   #[error("IO error: {0}")]
   IO(#[from] std::io::Error),
@@ -36,19 +36,48 @@ pub enum MewError {
 
 impl MewError {
   pub fn syntax<T: Into<String>>(message: T) -> Self {
-    MewError::Syntax(message.into())
+    MewError::Syntax(message.into(), Location::unknown())
+  }
+
+  pub fn syntax_at<T: Into<String>>(message: T, location: Location) -> Self {
+    MewError::Syntax(message.into(), location)
   }
 
   pub fn runtime<T: Into<String>>(message: T) -> Self {
-    MewError::Runtime(message.into())
+    MewError::Runtime(message.into(), Location::unknown())
+  }
+
+  #[allow(dead_code)]
+  pub fn runtime_at<T: Into<String>>(message: T, location: Location) -> Self {
+    MewError::Runtime(message.into(), location)
   }
 
   pub fn type_error<T: Into<String>>(message: T) -> Self {
-    MewError::Type(message.into())
+    MewError::Type(message.into(), Location::unknown())
+  }
+
+  #[allow(dead_code)]
+  pub fn type_error_at<T: Into<String>>(message: T, location: Location) -> Self {
+    MewError::Type(message.into(), location)
   }
 
   pub fn name<T: Into<String>>(message: T) -> Self {
-    MewError::Name(message.into())
+    MewError::Name(message.into(), Location::unknown())
+  }
+
+  #[allow(dead_code)]
+  pub fn name_at<T: Into<String>>(message: T, location: Location) -> Self {
+    MewError::Name(message.into(), location)
+  }
+
+  pub fn location(&self) -> Option<Location> {
+    match self {
+      MewError::Syntax(_, loc) => Some(*loc),
+      MewError::Runtime(_, loc) => Some(*loc),
+      MewError::Type(_, loc) => Some(*loc),
+      MewError::Name(_, loc) => Some(*loc),
+      MewError::IO(_) => None,
+    }
   }
 }
 
@@ -64,10 +93,18 @@ impl Location {
   pub fn new(line: usize, column: usize) -> Self {
     Self { line, column }
   }
+
+  pub fn unknown() -> Self {
+    Self { line: 0, column: 0 }
+  }
 }
 
 impl fmt::Display for Location {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "line {}, column {}", self.line, self.column)
+    if self.line == 0 && self.column == 0 {
+      write!(f, "unknown location")
+    } else {
+      write!(f, "line {}, column {}", self.line, self.column)
+    }
   }
 }

@@ -63,8 +63,7 @@ Get-Process | Where-Object {
   $_.Modules.FileName -contains (Join-Path $installDir "mew.exe") 
 } | Stop-Process -Force
 
-
-Write-Host "   Mew Language Installer" -ForegroundColor Cyan
+Write-Host "`n   Mew Language Installer" -ForegroundColor Cyan
 Write-Host "============================" -ForegroundColor Cyan
 Write-Host "Found Mew programming language version $latestVersion" -ForegroundColor Green
 
@@ -115,3 +114,5 @@ else {
 
 Write-Host "`nThank you for installing Mew!" -ForegroundColor Cyan
 Write-Host "For help, type 'mew --help' in your terminal" -ForegroundColor Cyan
+
+exit 0

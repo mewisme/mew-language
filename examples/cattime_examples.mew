@@ -1,0 +1,128 @@
+// CatTime Tutorial
+// A comprehensive guide to the cat-themed Date object in Mew
+
+// ========== Introduction ==========
+purr("====== CatTime: The Cat-themed Date Object ======");
+purr("CatTime provides date and time operations with cat-themed method names");
+purr("");
+
+// ========== Basic Usage ==========
+purr("===== Basic CatTime Operations =====");
+
+// Get current timestamp (milliseconds since epoch)
+purr("CatTime.now() = " + CatTime.now());
+purr("Like JavaScript's Date.now(), CatTime.now() returns the current timestamp in milliseconds");
+purr("");
+
+// Create a new date object
+purr("Creating a new date object with CatTime.wakeUp()");
+catlt catDate = CatTime.wakeUp();
+purr("This is equivalent to JavaScript's 'new Date()'");
+purr("");
+
+// ========== Date Components ==========
+purr("===== Getting Date Components =====");
+
+// Get year
+purr("CatTime.fullYear(catDate) = " + CatTime.fullYear(catDate));
+purr("This is equivalent to JavaScript's date.getFullYear()");
+purr("");
+
+// Get month (0-11, January is 0)
+purr("CatTime.month(catDate) = " + CatTime.month(catDate));
+purr("This is equivalent to JavaScript's date.getMonth()");
+purr("Note: Months are 0-indexed (0 = January, 11 = December)");
+purr("");
+
+// Get day of month (1-31)
+purr("CatTime.day(catDate) = " + CatTime.day(catDate));
+purr("This is equivalent to JavaScript's date.getDate()");
+purr("");
+
+// Get day of week (0-6, Sunday is 0)
+purr("CatTime.weekday(catDate) = " + CatTime.weekday(catDate));
+purr("This is equivalent to JavaScript's date.getDay()");
+purr("Note: 0 = Sunday, 1 = Monday, ..., 6 = Saturday");
+purr("");
+
+// ========== Time Components ==========
+purr("===== Getting Time Components =====");
+
+// Get hours (0-23)
+purr("CatTime.hours(catDate) = " + CatTime.hours(catDate));
+purr("This is equivalent to JavaScript's date.getHours()");
+purr("");
+
+// Get minutes (0-59)
+purr("CatTime.minutes(catDate) = " + CatTime.minutes(catDate));
+purr("This is equivalent to JavaScript's date.getMinutes()");
+purr("");
+
+// Get seconds (0-59)
+purr("CatTime.seconds(catDate) = " + CatTime.seconds(catDate));
+purr("This is equivalent to JavaScript's date.getSeconds()");
+purr("");
+
+// Get milliseconds (0-999)
+purr("CatTime.milliseconds(catDate) = " + CatTime.milliseconds(catDate));
+purr("This is equivalent to JavaScript's date.getMilliseconds()");
+purr("");
+
+// ========== String Representation ==========
+purr("===== String Representation =====");
+
+// Convert date to string
+purr("CatTime.toMeow(catDate) = " + CatTime.toMeow(catDate));
+purr("This is equivalent to JavaScript's date.toString()");
+purr("");
+
+// ========== Practical Examples ==========
+purr("===== Practical Examples =====");
+
+// Example 1: Calculate age
+purr("Example 1: Calculate age based on birth year");
+catlt birthYear = 2000;  // Example birth year
+catlt currentYear = CatTime.fullYear(CatTime.wakeUp());
+catlt age = currentYear - birthYear;
+purr("Birth year: " + birthYear);
+purr("Current year: " + currentYear);
+purr("Age: " + age);
+purr("");
+
+// Example 2: Format a date as YYYY-MM-DD
+purr("Example 2: Format a date as YYYY-MM-DD");
+cat formatDate(date) {
+    catlt year = CatTime.fullYear(date);
+    catlt month = CatTime.month(date) + 1;  // Add 1 because months are 0-indexed
+    catlt day = CatTime.day(date);
+    
+    // Add leading zeros if needed
+    catlt monthStr = month < 10 ? "0" + month : month.toString();
+    catlt dayStr = day < 10 ? "0" + day : day.toString();
+    
+    return year + "-" + monthStr + "-" + dayStr;
+}
+
+catlt today = CatTime.wakeUp();
+purr("Today in YYYY-MM-DD format: " + formatDate(today));
+purr("");
+
+// Example 3: Time-based greeting
+purr("Example 3: Time-based greeting");
+cat getGreeting(date) {
+    catlt hour = CatTime.hours(date);
+    
+    meow? (hour < 12) {
+        return "Good morning! Cats are just waking up.";
+    } meowse? (hour < 18) {
+        return "Good afternoon! Cats are sun-bathing.";
+    } hiss {
+        return "Good evening! Cats are getting active.";
+    }
+}
+
+catlt now = CatTime.wakeUp();
+purr("Current time greeting: " + getGreeting(now));
+purr("");
+
+purr("====== End of CatTime Tutorial ======"); 

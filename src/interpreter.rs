@@ -15,6 +15,7 @@
 
 use crate::error::{MewError, MewResult};
 use crate::value::{BinaryOp, Environment, Expr, Function, NativeFunction, Stmt, UnaryOp, Value};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -45,6 +46,16 @@ impl Interpreter {
       "print",
       Value::NativeFunction(Rc::new(NativeFunction {
         name: "print".to_string(),
+        function: Self::native_print,
+      })),
+      true,
+    );
+
+    // Define purr as alias for print (cat-themed print function)
+    self.globals.borrow_mut().define(
+      "purr",
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "purr".to_string(),
         function: Self::native_print,
       })),
       true,
@@ -159,6 +170,229 @@ impl Interpreter {
       })),
       true,
     );
+
+    let mut mewth_methods = HashMap::new();
+
+    // Mewth.pounce (floor)
+    mewth_methods.insert(
+      "pounce".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "pounce".to_string(),
+        function: Self::native_mewth_pounce,
+      })),
+    );
+
+    // Mewth.leap (ceil)
+    mewth_methods.insert(
+      "leap".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "leap".to_string(),
+        function: Self::native_mewth_leap,
+      })),
+    );
+
+    // Mewth.curl (round)
+    mewth_methods.insert(
+      "curl".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "curl".to_string(),
+        function: Self::native_mewth_curl,
+      })),
+    );
+
+    // Mewth.lick (abs)
+    mewth_methods.insert(
+      "lick".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "lick".to_string(),
+        function: Self::native_mewth_lick,
+      })),
+    );
+
+    // Mewth.alpha (max)
+    mewth_methods.insert(
+      "alpha".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "alpha".to_string(),
+        function: Self::native_mewth_alpha,
+      })),
+    );
+
+    // Mewth.kitten (min)
+    mewth_methods.insert(
+      "kitten".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "kitten".to_string(),
+        function: Self::native_mewth_kitten,
+      })),
+    );
+
+    // Mewth.chase (random)
+    mewth_methods.insert(
+      "chase".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "chase".to_string(),
+        function: Self::native_mewth_chase,
+      })),
+    );
+
+    // Mewth.hiss (sqrt)
+    mewth_methods.insert(
+      "dig".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "dig".to_string(),
+        function: Self::native_mewth_dig,
+      })),
+    );
+
+    // Mewth.scratch (pow)
+    mewth_methods.insert(
+      "scratch".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "scratch".to_string(),
+        function: Self::native_mewth_scratch,
+      })),
+    );
+
+    // Mewth.tailDirection (sign)
+    mewth_methods.insert(
+      "tailDirection".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "tailDirection".to_string(),
+        function: Self::native_mewth_tail_direction,
+      })),
+    );
+
+    // Add Mewth.PI constant (equivalent to Math.PI)
+    mewth_methods.insert("PI".to_string(), Value::Number(std::f64::consts::PI));
+
+    // Define the Mewth global object
+    self
+      .globals
+      .borrow_mut()
+      .define("Mewth", Value::Object(mewth_methods), true);
+
+    let mut cat_time_methods = HashMap::new();
+
+    cat_time_methods.insert(
+      "now".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "now".to_string(),
+        function: Self::native_cat_time_now,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "wakeUp".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "wakeUp".to_string(),
+        function: Self::native_cat_time_wake_up,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "fullYear".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "fullYear".to_string(),
+        function: Self::native_cat_time_full_year,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "month".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "month".to_string(),
+        function: Self::native_cat_time_month,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "day".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "day".to_string(),
+        function: Self::native_cat_time_day,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "weekday".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "weekday".to_string(),
+        function: Self::native_cat_time_weekday,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "hours".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "hours".to_string(),
+        function: Self::native_cat_time_hours,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "minutes".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "minutes".to_string(),
+        function: Self::native_cat_time_minutes,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "seconds".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "seconds".to_string(),
+        function: Self::native_cat_time_seconds,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "milliseconds".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "milliseconds".to_string(),
+        function: Self::native_cat_time_milliseconds,
+      })),
+    );
+
+    cat_time_methods.insert(
+      "toMeow".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "toMeow".to_string(),
+        function: Self::native_cat_time_to_meow,
+      })),
+    );
+
+    self
+      .globals
+      .borrow_mut()
+      .define("CatTime", Value::Object(cat_time_methods), true);
+
+    // Add MewJ (JSON equivalent) object with methods
+    let mut mewj_methods = HashMap::new();
+
+    // MewJ.sniff (JSON.parse)
+    mewj_methods.insert(
+      "sniff".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "sniff".to_string(),
+        function: Self::native_mewj_sniff,
+      })),
+    );
+
+    // MewJ.mewify (JSON.stringify)
+    mewj_methods.insert(
+      "mewify".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "mewify".to_string(),
+        function: Self::native_mewj_mewify,
+      })),
+    );
+
+    // Define the MewJ global object
+    self
+      .globals
+      .borrow_mut()
+      .define("MewJ", Value::Object(mewj_methods), true);
   }
 
   // Static native function implementations
@@ -244,7 +478,6 @@ impl Interpreter {
     )))
   }
 
-  // Static native functions for Object methods
   fn native_object_keys(args: Vec<Value>) -> MewResult<Value> {
     if args.len() != 1 {
       return Err(MewError::runtime(
@@ -254,13 +487,11 @@ impl Interpreter {
 
     match &args[0] {
       Value::Object(obj) => {
-        // Extract keys from object
         let keys: Vec<Value> = obj.keys().map(|k| Value::String(k.clone())).collect();
 
         Ok(Value::Array(keys))
       }
       Value::Array(arr) => {
-        // For arrays, return the indices as numbers (not strings)
         let keys: Vec<Value> = (0..arr.len()).map(|i| Value::Number(i as f64)).collect();
 
         Ok(Value::Array(keys))
@@ -281,15 +512,11 @@ impl Interpreter {
 
     match &args[0] {
       Value::Object(obj) => {
-        // Extract values from object
         let values: Vec<Value> = obj.values().cloned().collect();
 
         Ok(Value::Array(values))
       }
-      Value::Array(arr) => {
-        // For arrays, return a clone of the array
-        Ok(Value::Array(arr.clone()))
-      }
+      Value::Array(arr) => Ok(Value::Array(arr.clone())),
       _ => Err(MewError::type_error(format!(
         "Object.values requires an object or array, got {}",
         args[0].type_name()
@@ -344,8 +571,8 @@ impl Interpreter {
         while self.evaluate(condition)?.is_truthy() {
           match self.execute(&body.borrow()) {
             Ok(value) => result = value,
-            Err(MewError::Runtime(msg)) if msg.contains("break") => break,
-            Err(MewError::Runtime(msg)) if msg.contains("continue") => continue,
+            Err(MewError::Runtime(msg, _)) if msg.contains("break") => break,
+            Err(MewError::Runtime(msg, _)) if msg.contains("continue") => continue,
             Err(e) => return Err(e),
           }
         }
@@ -427,10 +654,9 @@ impl Interpreter {
     for statement in statements {
       match self.execute(&statement.borrow()) {
         Ok(value) => result = value,
-        Err(MewError::Runtime(msg)) if msg.starts_with("return:") => {
+        Err(MewError::Runtime(msg, _)) if msg.starts_with("return:") => {
           let value_str = msg.trim_start_matches("return:");
 
-          // Parse the return value (simplified - in a real implementation, this would be more robust)
           if value_str == "undefined" {
             return Ok(Value::Undefined);
           } else if value_str == "null" {
@@ -442,7 +668,6 @@ impl Interpreter {
           } else if let Ok(num) = value_str.parse::<f64>() {
             return Ok(Value::Number(num));
           } else {
-            // Assume it's a string (remove quotes)
             let s = value_str
               .trim_start_matches('"')
               .trim_end_matches('"')
@@ -471,7 +696,6 @@ impl Interpreter {
         let right = self.evaluate(&*right)?;
 
         match (op, &left, &right) {
-          // Arithmetic
           (BinaryOp::Add, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
           (BinaryOp::Sub, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a - b)),
           (BinaryOp::Mul, Value::Number(a), Value::Number(b)) => Ok(Value::Number(a * b)),
@@ -490,11 +714,9 @@ impl Interpreter {
             }
           }
 
-          // String concatenation
           (BinaryOp::Add, Value::String(a), _) => Ok(Value::String(format!("{}{}", a, right))),
           (BinaryOp::Add, _, Value::String(b)) => Ok(Value::String(format!("{}{}", left, b))),
 
-          // Comparisons
           (BinaryOp::Eq, _, _) => Ok(Value::Bool(self.is_equal(&left, &right))),
           (BinaryOp::NotEq, _, _) => Ok(Value::Bool(!self.is_equal(&left, &right))),
           (BinaryOp::Lt, Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a < b)),
@@ -502,7 +724,6 @@ impl Interpreter {
           (BinaryOp::Gt, Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a > b)),
           (BinaryOp::Gte, Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a >= b)),
 
-          // Logical operators
           (BinaryOp::And, _, _) => Ok(Value::Bool(left.is_truthy() && right.is_truthy())),
           (BinaryOp::Or, _, _) => Ok(Value::Bool(left.is_truthy() || right.is_truthy())),
 
@@ -520,7 +741,10 @@ impl Interpreter {
 
         match (op, &right) {
           (UnaryOp::Minus, Value::Number(n)) => Ok(Value::Number(-n)),
-          (UnaryOp::Not, _) => Ok(Value::Bool(!right.is_truthy())),
+          (UnaryOp::Not, value) => match value {
+            Value::Bool(b) => Ok(Value::Bool(!b)),
+            _ => Ok(Value::Bool(!right.is_truthy())),
+          },
           _ => Err(MewError::type_error(format!(
             "Cannot apply operator {:?} to {}",
             op,
@@ -569,10 +793,8 @@ impl Interpreter {
                   )))
                 }
               } else {
-                // Try evaluating the index as a direct expression
-                let parsed_result = key_str.parse::<usize>();
-
-                if let Ok(index) = parsed_result {
+                // Try parsing the index directly
+                if let Ok(index) = key_str.parse::<usize>() {
                   let key = index.to_string();
                   if let Some(value) = obj.get(&key) {
                     return Ok(value.clone());
@@ -581,28 +803,40 @@ impl Interpreter {
                   }
                 }
 
-                // If it's not a variable, try evaluating it as a direct expression
-                let expr_value = self.evaluate(&Expr::Variable(key_str.to_string()))?;
+                // Try to evaluate as a simple expression
+                match self.try_evaluate_as_expression(key_str) {
+                  Some(index) => {
+                    let key = index.to_string();
+                    if let Some(value) = obj.get(&key) {
+                      Ok(value.clone())
+                    } else {
+                      Ok(Value::Undefined)
+                    }
+                  }
+                  None => {
+                    // If it's not an expression, try evaluating it as a variable
+                    let expr_value = self.evaluate(&Expr::Variable(key_str.to_string()))?;
 
-                if let Value::String(key) = expr_value {
-                  if let Some(value) = obj.get(&key) {
-                    Ok(value.clone())
-                  } else {
-                    Ok(Value::Undefined)
+                    if let Value::String(key) = expr_value {
+                      if let Some(value) = obj.get(&key) {
+                        Ok(value.clone())
+                      } else {
+                        Ok(Value::Undefined)
+                      }
+                    } else if let Value::Number(num) = expr_value {
+                      let key = num.to_string();
+                      if let Some(value) = obj.get(&key) {
+                        Ok(value.clone())
+                      } else {
+                        Ok(Value::Undefined)
+                      }
+                    } else {
+                      Err(MewError::type_error(format!(
+                        "Object property name must be a string or number, got: {}",
+                        expr_value.type_name()
+                      )))
+                    }
                   }
-                } else if let Value::Number(num) = expr_value {
-                  // Convert number to string for object key lookup
-                  let key = num.to_string();
-                  if let Some(value) = obj.get(&key) {
-                    Ok(value.clone())
-                  } else {
-                    Ok(Value::Undefined)
-                  }
-                } else {
-                  Err(MewError::type_error(format!(
-                    "Object property name must be a string or number, got: {}",
-                    expr_value.type_name()
-                  )))
                 }
               }
             } else if let Some(value) = obj.get(name) {
@@ -613,13 +847,15 @@ impl Interpreter {
           }
           Value::Array(arr) => {
             if name == "length" {
-              // Special property: length
               Ok(Value::Number(arr.len() as f64))
             } else if name.starts_with('[') && name.ends_with(']') {
               // Handle dynamic indexing: arr[expr]
               let index_str = &name[1..name.len() - 1];
 
-              if let Ok(expr_value) = self.evaluate(&Expr::Variable(index_str.to_string())) {
+              // Try evaluating as an expression first
+              let expr_result = self.evaluate(&Expr::Variable(index_str.to_string()));
+
+              if let Ok(expr_value) = expr_result {
                 if let Value::Number(n) = expr_value {
                   let index = n as usize;
                   if index < arr.len() {
@@ -634,19 +870,35 @@ impl Interpreter {
                   )))
                 }
               } else {
-                // Try parsing the index directly
-                if let Ok(index) = index_str.parse::<usize>() {
-                  if index < arr.len() {
-                    Ok(arr[index].clone())
-                  } else {
-                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                // If it's not a variable, try evaluating the expression directly
+                // For expressions like i+1, <, >, etc.
+                let parsed_expression_result = match index_str.parse::<usize>() {
+                  Ok(index) => {
+                    if index < arr.len() {
+                      Ok(arr[index].clone())
+                    } else {
+                      Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                    }
                   }
-                } else {
-                  Err(MewError::type_error(format!(
-                    "Invalid array index: {}",
-                    index_str
-                  )))
-                }
+                  Err(_) => {
+                    // Try to evaluate as a simple expression
+                    match self.try_evaluate_as_expression(index_str) {
+                      Some(index) => {
+                        if index < arr.len() {
+                          Ok(arr[index].clone())
+                        } else {
+                          Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                        }
+                      }
+                      None => Err(MewError::type_error(format!(
+                        "Invalid array index expression: {}",
+                        index_str
+                      ))),
+                    }
+                  }
+                };
+
+                parsed_expression_result
               }
             } else {
               // Try to parse the name as a number for array indices
@@ -657,7 +909,7 @@ impl Interpreter {
                   Err(MewError::runtime(format!("Index out of bounds: {}", index)))
                 }
               } else {
-                // Special case for our internal variable names
+                // Special case for internal variables
                 if name.starts_with("__index_")
                   || name.starts_with("__key_")
                   || name.starts_with("__keys_")
@@ -675,6 +927,16 @@ impl Interpreter {
                   )))
                 }
               }
+            }
+          }
+          Value::String(s) => {
+            if name == "length" {
+              Ok(Value::Number(s.len() as f64))
+            } else {
+              Err(MewError::type_error(format!(
+                "Cannot access property '{}' of string",
+                name
+              )))
             }
           }
           _ => Err(MewError::type_error(format!(
@@ -813,10 +1075,8 @@ impl Interpreter {
                       arr[index] = new_value.clone();
 
                       if *is_prefix {
-                        // For prefix (++arr[i]), return the new value
                         Ok(new_value)
                       } else {
-                        // For postfix (arr[i]++), return the original value
                         Ok(Value::Number(n))
                       }
                     } else {
@@ -828,7 +1088,6 @@ impl Interpreter {
                     Err(MewError::runtime(format!("Index out of bounds: {}", index)))
                   }
                 } else if property_name.starts_with('[') && property_name.ends_with(']') {
-                  // Handle the dynamic array indexing case (similar to Get handling)
                   let index_str = &property_name[1..property_name.len() - 1];
                   if let Ok(expr_value) = self.evaluate(&Expr::Variable(index_str.to_string())) {
                     if let Value::Number(n) = expr_value {
@@ -839,10 +1098,8 @@ impl Interpreter {
                           arr[index] = new_value.clone();
 
                           if *is_prefix {
-                            // For prefix (++arr[i]), return the new value
                             Ok(new_value)
                           } else {
-                            // For postfix (arr[i]++), return the original value
                             Ok(Value::Number(element_val))
                           }
                         } else {
@@ -883,7 +1140,6 @@ impl Interpreter {
       }
 
       Expr::Decrement(target, is_prefix) => {
-        // Handle both prefix (--x) and postfix (x--) decrement
         match &**target {
           Expr::Variable(name) => {
             let current = self.environment.borrow().get(name)?;
@@ -896,10 +1152,8 @@ impl Interpreter {
                 .assign(name, new_value.clone())?;
 
               if *is_prefix {
-                // For prefix (--x), return the new value
                 Ok(new_value)
               } else {
-                // For postfix (x--), return the original value
                 Ok(Value::Number(n))
               }
             } else {
@@ -921,10 +1175,8 @@ impl Interpreter {
                     obj.insert(property_name.clone(), new_value.clone());
 
                     if *is_prefix {
-                      // For prefix (--obj.prop), return the new value
                       Ok(new_value)
                     } else {
-                      // For postfix (obj.prop--), return the original value
                       Ok(old_value)
                     }
                   } else {
@@ -952,10 +1204,8 @@ impl Interpreter {
                       arr[index] = new_value.clone();
 
                       if *is_prefix {
-                        // For prefix (--arr[i]), return the new value
                         Ok(new_value)
                       } else {
-                        // For postfix (arr[i]--), return the original value
                         Ok(Value::Number(n))
                       }
                     } else {
@@ -978,10 +1228,8 @@ impl Interpreter {
                           arr[index] = new_value.clone();
 
                           if *is_prefix {
-                            // For prefix (--arr[i]), return the new value
                             Ok(new_value)
                           } else {
-                            // For postfix (arr[i]--), return the original value
                             Ok(Value::Number(element_val))
                           }
                         } else {
@@ -1042,10 +1290,9 @@ impl Interpreter {
 
         match self.execute_block(&function.body, environment) {
           Ok(value) => Ok(value),
-          Err(MewError::Runtime(msg)) if msg.starts_with("return:") => {
+          Err(MewError::Runtime(msg, _)) if msg.starts_with("return:") => {
             let value_str = msg.trim_start_matches("return:");
 
-            // Parse the return value (simplified)
             if value_str == "undefined" {
               Ok(Value::Undefined)
             } else if value_str == "null" {
@@ -1057,7 +1304,6 @@ impl Interpreter {
             } else if let Ok(num) = value_str.parse::<f64>() {
               Ok(Value::Number(num))
             } else {
-              // Assume it's a string (remove quotes)
               let s = value_str
                 .trim_start_matches('"')
                 .trim_end_matches('"')
@@ -1089,9 +1335,723 @@ impl Interpreter {
       }
       (Value::Bool(a), Value::Bool(b)) => a == b,
       (Value::String(a), Value::String(b)) => a == b,
-      // For other types, reference equality
       _ => std::ptr::eq(a, b),
     }
+  }
+
+  fn native_mewth_pounce(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.pounce requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => Ok(Value::Number(n.floor())),
+      _ => Err(MewError::runtime(format!(
+        "Mewth.pounce requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_leap(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.leap requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => Ok(Value::Number(n.ceil())),
+      _ => Err(MewError::runtime(format!(
+        "Mewth.leap requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_curl(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.curl requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => Ok(Value::Number(n.round())),
+      _ => Err(MewError::runtime(format!(
+        "Mewth.curl requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_lick(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.lick requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => Ok(Value::Number(n.abs())),
+      _ => Err(MewError::runtime(format!(
+        "Mewth.lick requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_alpha(args: Vec<Value>) -> MewResult<Value> {
+    if args.is_empty() {
+      return Err(MewError::runtime(
+        "Mewth.alpha requires at least one number argument",
+      ));
+    }
+
+    let mut max = f64::NEG_INFINITY;
+
+    for arg in args {
+      match arg {
+        Value::Number(n) => {
+          if n > max {
+            max = n;
+          }
+        }
+        _ => {
+          return Err(MewError::runtime(format!(
+            "Mewth.alpha requires numbers, got {}",
+            arg.type_name()
+          )))
+        }
+      }
+    }
+
+    Ok(Value::Number(max))
+  }
+
+  fn native_mewth_kitten(args: Vec<Value>) -> MewResult<Value> {
+    if args.is_empty() {
+      return Err(MewError::runtime(
+        "Mewth.kitten requires at least one number argument",
+      ));
+    }
+
+    let mut min = f64::INFINITY;
+
+    for arg in args {
+      match arg {
+        Value::Number(n) => {
+          if n < min {
+            min = n;
+          }
+        }
+        _ => {
+          return Err(MewError::runtime(format!(
+            "Mewth.kitten requires numbers, got {}",
+            arg.type_name()
+          )))
+        }
+      }
+    }
+
+    Ok(Value::Number(min))
+  }
+
+  fn native_mewth_chase(args: Vec<Value>) -> MewResult<Value> {
+    if !args.is_empty() {
+      return Err(MewError::runtime("Mewth.chase doesn't take any arguments"));
+    }
+
+    use rand::Rng;
+    let mut rng = rand::rng();
+    Ok(Value::Number(rng.random::<f64>()))
+  }
+
+  fn native_mewth_dig(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.dig requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => {
+        if *n < 0.0 {
+          return Err(MewError::runtime(
+            "Cannot compute square root of negative number",
+          ));
+        }
+        Ok(Value::Number(n.sqrt()))
+      }
+      _ => Err(MewError::runtime(format!(
+        "Mewth.dig requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_scratch(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 2 {
+      return Err(MewError::runtime(
+        "Mewth.scratch requires exactly two number arguments",
+      ));
+    }
+
+    match (&args[0], &args[1]) {
+      (Value::Number(base), Value::Number(exponent)) => Ok(Value::Number(base.powf(*exponent))),
+      _ => Err(MewError::runtime(format!(
+        "Mewth.scratch requires two numbers, got {} and {}",
+        args[0].type_name(),
+        args[1].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewth_tail_direction(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Mewth.tailDirection requires exactly one number argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Number(n) => {
+        let sign = if *n > 0.0 {
+          1.0
+        } else if *n < 0.0 {
+          -1.0
+        } else {
+          0.0
+        };
+        Ok(Value::Number(sign))
+      }
+      _ => Err(MewError::runtime(format!(
+        "Mewth.tailDirection requires a number, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  // CatTime native functions
+  fn native_cat_time_now(_args: Vec<Value>) -> MewResult<Value> {
+    let now = std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .unwrap()
+      .as_millis();
+    Ok(Value::Number(now as f64))
+  }
+
+  fn native_cat_time_wake_up(_args: Vec<Value>) -> MewResult<Value> {
+    // Create a date object with current timestamp
+    let now = std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .unwrap()
+      .as_millis();
+
+    // Create a date object
+    let mut date_obj = HashMap::new();
+    date_obj.insert("_timestamp".to_string(), Value::Number(now as f64));
+
+    Ok(Value::Object(date_obj))
+  }
+
+  fn native_cat_time_full_year(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.fullYear requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.fullYear",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.fullYear requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    Ok(Value::Number(datetime.year() as f64))
+  }
+
+  fn native_cat_time_month(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.month requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.month",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.month requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    // Note: JavaScript months are 0-indexed (0-11), matching this behavior
+    Ok(Value::Number((datetime.month() - 1) as f64))
+  }
+
+  fn native_cat_time_day(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.day requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.day",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.day requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    Ok(Value::Number(datetime.day() as f64))
+  }
+
+  fn native_cat_time_weekday(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.weekday requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.weekday",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.weekday requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    // Convert to 0-indexed weekday (Sunday = 0, Monday = 1, etc.)
+    let weekday = datetime.weekday().num_days_from_sunday();
+
+    Ok(Value::Number(weekday as f64))
+  }
+
+  fn native_cat_time_hours(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.hours requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.hours",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.hours requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    Ok(Value::Number(datetime.hour() as f64))
+  }
+
+  fn native_cat_time_minutes(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.minutes requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.minutes",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.minutes requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    Ok(Value::Number(datetime.minute() as f64))
+  }
+
+  fn native_cat_time_seconds(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.seconds requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.seconds",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.seconds requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    Ok(Value::Number(datetime.second() as f64))
+  }
+
+  fn native_cat_time_milliseconds(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.milliseconds requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.milliseconds",
+          ))
+        }
+      },
+      _ => {
+        return Err(MewError::runtime(
+          "CatTime.milliseconds requires a date object",
+        ))
+      }
+    };
+
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+    let millis = nanos / 1_000_000;
+
+    Ok(Value::Number(millis as f64))
+  }
+
+  fn native_cat_time_to_meow(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "CatTime.toMeow requires exactly one argument (date object)",
+      ));
+    }
+
+    // Extract timestamp from date object
+    let timestamp = match &args[0] {
+      Value::Object(obj) => match obj.get("_timestamp") {
+        Some(Value::Number(ts)) => *ts,
+        _ => {
+          return Err(MewError::runtime(
+            "Invalid date object passed to CatTime.toMeow",
+          ))
+        }
+      },
+      _ => return Err(MewError::runtime("CatTime.toMeow requires a date object")),
+    };
+
+    // Convert timestamp to UTC date
+    let seconds = (timestamp / 1000.0) as i64;
+    let nanos = ((timestamp % 1000.0) * 1_000_000.0) as u32;
+
+    // Create a UTC datetime from the timestamp
+    let datetime = DateTime::<Utc>::from_timestamp(seconds, nanos)
+      .ok_or_else(|| MewError::runtime("Invalid timestamp in date object"))?;
+
+    // Format date string similar to JavaScript's toString()
+    let formatted = datetime.format("%a %b %d %Y %H:%M:%S GMT%z").to_string();
+
+    Ok(Value::String(formatted))
+  }
+
+  // MewJ native functions
+  fn native_mewj_sniff(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "MewJ.sniff requires exactly one argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::String(json_str) => match serde_json::from_str::<serde_json::Value>(json_str) {
+        Ok(json_value) => Ok(Interpreter::json_to_mew_value(json_value)),
+        Err(e) => Err(MewError::runtime(format!("Invalid JSON syntax: {}", e))),
+      },
+      _ => Err(MewError::type_error(format!(
+        "MewJ.sniff requires a string argument, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_mewj_mewify(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() < 1 || args.len() > 2 {
+      return Err(MewError::runtime(
+        "MewJ.mewify requires one or two arguments",
+      ));
+    }
+
+    let value = &args[0];
+    let indent = if args.len() == 2 {
+      match &args[1] {
+        Value::Number(n) => {
+          if *n >= 0.0 && *n <= 10.0 {
+            Some(*n as usize)
+          } else {
+            None
+          }
+        }
+        _ => None,
+      }
+    } else {
+      None
+    };
+
+    match Interpreter::mew_value_to_json(value) {
+      Ok(json_value) => {
+        let result = if let Some(_spaces) = indent {
+          match serde_json::to_string_pretty(&json_value) {
+            Ok(s) => s,
+            Err(e) => return Err(MewError::runtime(format!("Serialization error: {}", e))),
+          }
+        } else {
+          match serde_json::to_string(&json_value) {
+            Ok(s) => s,
+            Err(e) => return Err(MewError::runtime(format!("Serialization error: {}", e))),
+          }
+        };
+
+        Ok(Value::String(result))
+      }
+      Err(e) => Err(e),
+    }
+  }
+
+  // Helper function to convert serde_json::Value to Mew Value
+  fn json_to_mew_value(json_value: serde_json::Value) -> Value {
+    match json_value {
+      serde_json::Value::Null => Value::Null,
+      serde_json::Value::Bool(b) => Value::Bool(b),
+      serde_json::Value::Number(n) => {
+        if let Some(f) = n.as_f64() {
+          Value::Number(f)
+        } else {
+          // Handle integers that don't fit in f64
+          Value::Number(n.as_i64().unwrap_or(0) as f64)
+        }
+      }
+      serde_json::Value::String(s) => Value::String(s),
+      serde_json::Value::Array(arr) => {
+        let mew_arr = arr.into_iter().map(Self::json_to_mew_value).collect();
+        Value::Array(mew_arr)
+      }
+      serde_json::Value::Object(obj) => {
+        let mut mew_obj = HashMap::new();
+        for (k, v) in obj {
+          mew_obj.insert(k, Self::json_to_mew_value(v));
+        }
+        Value::Object(mew_obj)
+      }
+    }
+  }
+
+  // Helper function to convert Mew Value to serde_json::Value
+  fn mew_value_to_json(value: &Value) -> MewResult<serde_json::Value> {
+    match value {
+      Value::Null => Ok(serde_json::Value::Null),
+      Value::Bool(b) => Ok(serde_json::Value::Bool(*b)),
+      Value::Number(n) => {
+        if n.is_finite() {
+          Ok(serde_json::Value::Number(
+            serde_json::Number::from_f64(*n).unwrap(),
+          ))
+        } else if n.is_nan() {
+          Err(MewError::runtime("Cannot convert NaN to JSON"))
+        } else {
+          Err(MewError::runtime("Cannot convert Infinity to JSON"))
+        }
+      }
+      Value::String(s) => Ok(serde_json::Value::String(s.clone())),
+      Value::Array(arr) => {
+        let mut json_arr = Vec::new();
+        for item in arr {
+          json_arr.push(Self::mew_value_to_json(item)?);
+        }
+        Ok(serde_json::Value::Array(json_arr))
+      }
+      Value::Object(obj) => {
+        let mut json_obj = serde_json::Map::new();
+        for (k, v) in obj {
+          json_obj.insert(k.clone(), Self::mew_value_to_json(v)?);
+        }
+        Ok(serde_json::Value::Object(json_obj))
+      }
+      Value::Undefined => Ok(serde_json::Value::Null), // Convert undefined to null in JSON
+      Value::Function(_) | Value::NativeFunction(_) => {
+        Err(MewError::runtime("Functions cannot be converted to JSON"))
+      }
+    }
+  }
+
+  // Helper method to evaluate simple expressions that might be array indices
+  fn try_evaluate_as_expression(&mut self, expr_str: &str) -> Option<usize> {
+    // Try to handle simple expressions like i+1, i-1, etc.
+
+    // First, check for binary operations
+    if let Some(plus_pos) = expr_str.find('+') {
+      let left = &expr_str[0..plus_pos].trim();
+      let right = &expr_str[plus_pos + 1..].trim();
+
+      // Evaluate the left-hand side
+      let left_val = if let Ok(val) = self.evaluate(&Expr::Variable(left.to_string())) {
+        if let Value::Number(num) = val {
+          Some(num)
+        } else {
+          None
+        }
+      } else {
+        // Try parsing it as a number
+        left.parse::<f64>().ok()
+      };
+
+      // Evaluate the right-hand side
+      let right_val = if let Ok(val) = self.evaluate(&Expr::Variable(right.to_string())) {
+        if let Value::Number(num) = val {
+          Some(num)
+        } else {
+          None
+        }
+      } else {
+        // Try parsing it as a number
+        right.parse::<f64>().ok()
+      };
+
+      // If both sides are valid numbers, return the result
+      if let (Some(left_num), Some(right_num)) = (left_val, right_val) {
+        return Some((left_num + right_num) as usize);
+      }
+    } else if let Some(minus_pos) = expr_str.find('-') {
+      let left = &expr_str[0..minus_pos].trim();
+      let right = &expr_str[minus_pos + 1..].trim();
+
+      // Evaluate the left-hand side
+      let left_val = if let Ok(val) = self.evaluate(&Expr::Variable(left.to_string())) {
+        if let Value::Number(num) = val {
+          Some(num)
+        } else {
+          None
+        }
+      } else {
+        // Try parsing it as a number
+        left.parse::<f64>().ok()
+      };
+
+      // Evaluate the right-hand side
+      let right_val = if let Ok(val) = self.evaluate(&Expr::Variable(right.to_string())) {
+        if let Value::Number(num) = val {
+          Some(num)
+        } else {
+          None
+        }
+      } else {
+        // Try parsing it as a number
+        right.parse::<f64>().ok()
+      };
+
+      // If both sides are valid numbers and left >= right, return the result
+      if let (Some(left_num), Some(right_num)) = (left_val, right_val) {
+        if left_num >= right_num {
+          return Some((left_num - right_num) as usize);
+        }
+      }
+    }
+
+    // If we can't evaluate it as an expression, try to evaluate it as a variable
+    if let Ok(val) = self.evaluate(&Expr::Variable(expr_str.to_string())) {
+      if let Value::Number(num) = val {
+        return Some(num as usize);
+      }
+    }
+
+    None
   }
 }
 
@@ -1100,10 +2060,16 @@ pub fn interpret(source: &str) -> MewResult<Value> {
   use crate::parser::Parser;
 
   let mut lexer = MewLexer::new(source);
-  let tokens = lexer.scan_tokens()?;
+  let tokens = match lexer.scan_tokens() {
+    Ok(t) => t,
+    Err(e) => return Err(e),
+  };
 
   let mut parser = Parser::new(tokens);
-  let statements = parser.parse()?;
+  let statements = match parser.parse() {
+    Ok(s) => s,
+    Err(e) => return Err(e),
+  };
 
   let mut interpreter = Interpreter::new();
   interpreter.interpret(&statements)
