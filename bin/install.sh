@@ -1,43 +1,43 @@
 #!/usr/bin/env bash
 
-# Mew Language Installer
-# This script downloads the latest release of Mew language from GitHub,
-# extracts it to ~/.mew, and adds it to your PATH environment variable
-
-# Show a welcome message
 echo -e "\033[36m   Mew Language Installer\033[0m"
 echo -e "\033[36m============================\033[0m"
 
-# Detect platform and architecture
-OS="$(uname)"
-ARCH="$(uname -m)"
+PLATFORM=""
+ARCH_FILE=""
 
-if [[ "$OS" == "Darwin" ]]; then
+# Detect platform
+if [[ "$(uname)" == "Darwin" ]]; then
     PLATFORM="macos"
+    # Detect architecture
+    ARCH=$(uname -m)
     if [[ "$ARCH" == "arm64" ]]; then
-        ASSET_NAME="mew-macos-arm64.zip"
+        ARCH_FILE="macos-arm64"
     else
-        ASSET_NAME="mew-macos-x86_64.zip"
+        ARCH_FILE="macos-x86_64"
     fi
-    elif [[ "$OS" == "Linux" ]]; then
+    elif [[ "$(uname)" == "Linux" ]]; then
     PLATFORM="linux"
+    # Detect architecture
+    ARCH=$(uname -m)
     if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
-        ASSET_NAME="mew-linux-arm64.zip"
-        elif [[ "$ARCH" == "armv7l" ]]; then
-        ASSET_NAME="mew-linux-armv7.zip"
+        ARCH_FILE="linux-arm64"
     else
-        ASSET_NAME="mew-linux-x86_64.zip"
+        ARCH_FILE="linux-x86_64"
     fi
 else
-    echo -e "\033[31mUnsupported platform: $OS\033[0m"
+    echo -e "\033[31mUnsupported platform: $(uname)\033[0m"
     exit 1
 fi
 
+# Define installation directory
 INSTALL_DIR="$HOME/.mew"
-TMP_FILE="/tmp/$ASSET_NAME"
+TMP_FILE="/tmp/mew-$ARCH_FILE.zip"
 
+# Create installation directory if it doesn't exist
 mkdir -p "$INSTALL_DIR"
 
+# Get the latest release URL from GitHub API
 API_URL="https://api.github.com/repos/mewisme/mew-language/releases/latest"
 RELEASE_INFO=$(curl -s -H "Accept: application/vnd.github.v3+json" -H "User-Agent: Mew-Installer" "$API_URL")
 
@@ -46,24 +46,30 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "\"browser_download_url\": \"[^\"]*$ASSET_NAME\"" | cut -d\" -f4)
+# Extract download URL and version
+DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "\"browser_download_url\": \"[^\"]*mew-$ARCH_FILE.zip\"" | cut -d\" -f4)
 VERSION=$(echo "$RELEASE_INFO" | grep -o "\"tag_name\": \"[^\"]*\"" | cut -d\" -f4)
 
 if [ -z "$DOWNLOAD_URL" ]; then
-    echo -e "\033[31mCould not find $ASSET_NAME in the latest release\033[0m"
+    echo -e "\033[31mCould not find mew-$ARCH_FILE.zip in the latest release\033[0m"
     exit 1
 fi
 
+echo -e "\033[32mFound Mew programming language version $VERSION\033[0m"
+
+# Download the release
 curl -L -o "$TMP_FILE" "$DOWNLOAD_URL"
 
 if [ $? -ne 0 ]; then
-    echo -e "\033[31mError downloading Mew\033[0m"
+    echo -e "\033[31mError downloading Mew programming language\033[0m"
     exit 1
 fi
 
+# Remove old files from install directory (but keep any user files)
 rm -f "$INSTALL_DIR/mew" "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE"
 rm -rf "$INSTALL_DIR/examples"
 
+# Extract the zip file
 unzip -o "$TMP_FILE" -d "$INSTALL_DIR"
 
 if [ $? -ne 0 ]; then
@@ -71,8 +77,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Clean up the zip file
 rm -f "$TMP_FILE"
 
+# Add to PATH if not already there
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
     SHELL_NAME=$(basename "$SHELL")
     if [[ "$SHELL_NAME" == "bash" ]]; then
