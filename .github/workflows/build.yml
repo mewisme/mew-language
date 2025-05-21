@@ -126,7 +126,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-multilib g++-multilib pkg-config libssl-dev
           if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libssl-dev:arm64
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            # For cross-compiling with OpenSSL
+            export OPENSSL_DIR=/usr
+            export OPENSSL_INCLUDE_DIR=/usr/include
+            export OPENSSL_LIB_DIR=/usr/lib
+            echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+            echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+            echo "OPENSSL_LIB_DIR=/usr/lib" >> $GITHUB_ENV
+            echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           fi
 
       - name: Enable colored output
