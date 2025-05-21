@@ -10,6 +10,11 @@ build = "build.rs"
 name = "mew"
 path = "src/main.rs"
 
+[lib]
+name = "mew_lib"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 rustyline = "15.0.0"
 logos = "0.15.0"

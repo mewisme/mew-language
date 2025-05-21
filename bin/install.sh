@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Mew Language Installer
 # This script downloads the latest release of Mew language from GitHub,
@@ -8,26 +8,36 @@
 echo -e "\033[36m   Mew Language Installer\033[0m"
 echo -e "\033[36m============================\033[0m"
 
-# Detect platform
-if [[ "$(uname)" == "Darwin" ]]; then
+# Detect platform and architecture
+OS="$(uname)"
+ARCH="$(uname -m)"
+
+if [[ "$OS" == "Darwin" ]]; then
     PLATFORM="macos"
-    ASSET_NAME="mew-macos-x86_64.zip"
-    elif [[ "$(uname)" == "Linux" ]]; then
+    if [[ "$ARCH" == "arm64" ]]; then
+        ASSET_NAME="mew-macos-arm64.zip"
+    else
+        ASSET_NAME="mew-macos-x86_64.zip"
+    fi
+    elif [[ "$OS" == "Linux" ]]; then
     PLATFORM="linux"
-    ASSET_NAME="mew-linux-x86_64.zip"
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        ASSET_NAME="mew-linux-arm64.zip"
+        elif [[ "$ARCH" == "armv7l" ]]; then
+        ASSET_NAME="mew-linux-armv7.zip"
+    else
+        ASSET_NAME="mew-linux-x86_64.zip"
+    fi
 else
-    echo -e "\033[31mUnsupported platform: $(uname)\033[0m"
+    echo -e "\033[31mUnsupported platform: $OS\033[0m"
     exit 1
 fi
 
-# Define installation directory
 INSTALL_DIR="$HOME/.mew"
 TMP_FILE="/tmp/$ASSET_NAME"
 
-# Create installation directory if it doesn't exist
 mkdir -p "$INSTALL_DIR"
 
-# Get the latest release URL from GitHub API
 API_URL="https://api.github.com/repos/mewisme/mew-language/releases/latest"
 RELEASE_INFO=$(curl -s -H "Accept: application/vnd.github.v3+json" -H "User-Agent: Mew-Installer" "$API_URL")
 
@@ -36,7 +46,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Extract download URL and version
 DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o "\"browser_download_url\": \"[^\"]*$ASSET_NAME\"" | cut -d\" -f4)
 VERSION=$(echo "$RELEASE_INFO" | grep -o "\"tag_name\": \"[^\"]*\"" | cut -d\" -f4)
 
@@ -45,9 +54,6 @@ if [ -z "$DOWNLOAD_URL" ]; then
     exit 1
 fi
 
-echo -e "\033[32mFound Mew version $VERSION\033[0m"
-
-# Download the release
 curl -L -o "$TMP_FILE" "$DOWNLOAD_URL"
 
 if [ $? -ne 0 ]; then
@@ -55,11 +61,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Remove old files from install directory (but keep any user files)
 rm -f "$INSTALL_DIR/mew" "$INSTALL_DIR/README.md" "$INSTALL_DIR/LICENSE"
 rm -rf "$INSTALL_DIR/examples"
 
-# Extract the zip file
 unzip -o "$TMP_FILE" -d "$INSTALL_DIR"
 
 if [ $? -ne 0 ]; then
@@ -67,14 +71,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Clean up the zip file
 rm -f "$TMP_FILE"
 
-# Add to PATH if not already there
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo -e "\033[33mAdding Mew to your PATH...\033[0m"
-    
-    # Detect shell and update the appropriate config file
     SHELL_NAME=$(basename "$SHELL")
     if [[ "$SHELL_NAME" == "bash" ]]; then
         CONFIG_FILE="$HOME/.bashrc"
