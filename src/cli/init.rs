@@ -37,7 +37,7 @@ pub fn handle_init(provided_name: Option<String>) -> MewResult<()> {
   let src_dir = project_dir.join("src");
   fs::create_dir(&src_dir)?;
   let main_file = src_dir.join("main.mew");
-  fs::write(main_file, "purr(\"Welcome to Mew Programming Language!\")")?;
+  fs::write(main_file, "purr(\"Welcome to Mew Programming Language!\");")?;
 
   let toml_content = format!(
     "[package]\n\
