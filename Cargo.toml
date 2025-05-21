@@ -1,6 +1,6 @@
 [package]
 name = "mew"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 description = "A cat-themed programming language with a runtime written in Rust"
 authors = ["MewTheDev <mewisadev@gmail.com>"]
@@ -20,7 +20,7 @@ rustyline = "15.0.0"
 logos = "0.15.0"
 thiserror = "2.0.12"
 clap = { version = "4.5.38", features = ["derive"] }
-reqwest = { version = "0.11", features = ["blocking", "json"] }
+reqwest = { version = "0.11", features = ["blocking", "json", "rustls-tls"] }
 semver = "1.0.20"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

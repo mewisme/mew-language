@@ -11,13 +11,12 @@ purr("===== Basic CatTime Operations =====");
 
 // Get current timestamp (milliseconds since epoch)
 purr("CatTime.now() = " + CatTime.now());
-purr("Like JavaScript's Date.now(), CatTime.now() returns the current timestamp in milliseconds");
 purr("");
 
 // Create a new date object
 purr("Creating a new date object with CatTime.wakeUp()");
 catlt catDate = CatTime.wakeUp();
-purr("This is equivalent to JavaScript's 'new Date()'");
+purr("catDate = " + catDate);
 purr("");
 
 // ========== Date Components ==========
@@ -25,23 +24,19 @@ purr("===== Getting Date Components =====");
 
 // Get year
 purr("CatTime.fullYear(catDate) = " + CatTime.fullYear(catDate));
-purr("This is equivalent to JavaScript's date.getFullYear()");
 purr("");
 
 // Get month (0-11, January is 0)
 purr("CatTime.month(catDate) = " + CatTime.month(catDate));
-purr("This is equivalent to JavaScript's date.getMonth()");
 purr("Note: Months are 0-indexed (0 = January, 11 = December)");
 purr("");
 
 // Get day of month (1-31)
 purr("CatTime.day(catDate) = " + CatTime.day(catDate));
-purr("This is equivalent to JavaScript's date.getDate()");
 purr("");
 
 // Get day of week (0-6, Sunday is 0)
 purr("CatTime.weekday(catDate) = " + CatTime.weekday(catDate));
-purr("This is equivalent to JavaScript's date.getDay()");
 purr("Note: 0 = Sunday, 1 = Monday, ..., 6 = Saturday");
 purr("");
 
@@ -50,22 +45,18 @@ purr("===== Getting Time Components =====");
 
 // Get hours (0-23)
 purr("CatTime.hours(catDate) = " + CatTime.hours(catDate));
-purr("This is equivalent to JavaScript's date.getHours()");
 purr("");
 
 // Get minutes (0-59)
 purr("CatTime.minutes(catDate) = " + CatTime.minutes(catDate));
-purr("This is equivalent to JavaScript's date.getMinutes()");
 purr("");
 
 // Get seconds (0-59)
 purr("CatTime.seconds(catDate) = " + CatTime.seconds(catDate));
-purr("This is equivalent to JavaScript's date.getSeconds()");
 purr("");
 
 // Get milliseconds (0-999)
 purr("CatTime.milliseconds(catDate) = " + CatTime.milliseconds(catDate));
-purr("This is equivalent to JavaScript's date.getMilliseconds()");
 purr("");
 
 // ========== String Representation ==========
@@ -73,7 +64,6 @@ purr("===== String Representation =====");
 
 // Convert date to string
 purr("CatTime.toMeow(catDate) = " + CatTime.toMeow(catDate));
-purr("This is equivalent to JavaScript's date.toString()");
 purr("");
 
 // ========== Practical Examples ==========

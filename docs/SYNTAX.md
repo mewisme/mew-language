@@ -75,6 +75,11 @@ meow? (condition) {
 }
 ```
 
+#### Ternary Operator
+```
+condition ? true_expression : false_expression
+```
+
 #### Switch Statements
 ```
 catwalk(expression) {

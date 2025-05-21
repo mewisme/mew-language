@@ -207,6 +207,35 @@ jobs:
     if: ${{ needs.check-version.outputs.should_release == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit info
+        id: commit-info
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            # Get commit that the tag points to
+            TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref_name }})
+            COMMIT_MSG=$(git log -1 --pretty=%s $TAG_COMMIT)
+            COMMIT_DESC=$(git log -1 --pretty=%b $TAG_COMMIT)
+          else
+            # Get latest commit info
+            COMMIT_MSG=$(git log -1 --pretty=%s)
+            COMMIT_DESC=$(git log -1 --pretty=%b)
+          fi
+          # Properly format for GitHub Actions output
+          COMMIT_MSG="${COMMIT_MSG//'%'/'%25'}"
+          COMMIT_MSG="${COMMIT_MSG//$'\n'/'%0A'}"
+          COMMIT_MSG="${COMMIT_MSG//$'\r'/'%0D'}"
+
+          COMMIT_DESC="${COMMIT_DESC//'%'/'%25'}"
+          COMMIT_DESC="${COMMIT_DESC//$'\n'/'%0A'}"
+          COMMIT_DESC="${COMMIT_DESC//$'\r'/'%0D'}"
+
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "description=$COMMIT_DESC" >> $GITHUB_OUTPUT
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
@@ -222,6 +251,8 @@ jobs:
             mew-macos-x86_64/*.zip
             mew-macos-arm64/*.zip
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', needs.check-version.outputs.version) }}
+          name: ${{ steps.commit-info.outputs.message }}
+          body: ${{ steps.commit-info.outputs.description }}
           draft: false
           prerelease: false
         env:

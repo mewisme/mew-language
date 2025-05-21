@@ -51,6 +51,16 @@ impl Interpreter {
       true,
     );
 
+    // Define toString for all value types
+    self.globals.borrow_mut().define(
+      "toString",
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "toString".to_string(),
+        function: Self::native_to_string,
+      })),
+      true,
+    );
+
     // Define purr as alias for print (cat-themed print function)
     self.globals.borrow_mut().define(
       "purr",
@@ -736,6 +746,14 @@ impl Interpreter {
           ))),
         }
       }
+      Expr::Ternary(condition, then_expr, else_expr) => {
+        let condition_value = self.evaluate(&*condition)?;
+        if condition_value.is_truthy() {
+          self.evaluate(&*then_expr)
+        } else {
+          self.evaluate(&*else_expr)
+        }
+      }
       Expr::Unary(op, expr) => {
         let right = self.evaluate(&*expr)?;
 
@@ -753,22 +771,48 @@ impl Interpreter {
         }
       }
       Expr::Call(callee, arguments) => {
-        let callee = self.evaluate(&*callee)?;
+        if let Expr::Get(object, _name) = &**callee {
+          let object_value = self.evaluate(object)?;
+          let method = self.evaluate(callee)?;
 
-        let mut args = Vec::new();
-        for arg in arguments {
-          args.push(self.evaluate(arg)?);
+          let mut args = Vec::new();
+
+          if let Value::NativeFunction(native) = &method {
+            if native.name == "toString" {
+              args.push(object_value.clone());
+            }
+          }
+
+          for arg in arguments {
+            args.push(self.evaluate(arg)?);
+          }
+
+          self.call_function(method, args)
+        } else {
+          // Normal function call (not a method call)
+          let callee_value = self.evaluate(&*callee)?;
+
+          let mut args = Vec::new();
+          for arg in arguments {
+            args.push(self.evaluate(arg)?);
+          }
+
+          self.call_function(callee_value, args)
         }
-
-        self.call_function(callee, args)
       }
       Expr::Get(object, name) => {
-        let object = self.evaluate(&*object)?;
+        let object_value = self.evaluate(&*object)?;
 
-        match object {
+        if name == "toString" {
+          return Ok(Value::NativeFunction(Rc::new(NativeFunction {
+            name: "toString".to_string(),
+            function: Self::native_to_string,
+          })));
+        }
+
+        match object_value {
           Value::Object(obj) => {
             if name.starts_with('[') && name.ends_with(']') {
-              // Handle dynamic property access: obj[expr]
               let key_str = &name[1..name.len() - 1];
 
               if let Ok(expr_value) = self.evaluate(&Expr::Variable(key_str.to_string())) {
@@ -779,7 +823,6 @@ impl Interpreter {
                     Ok(Value::Undefined)
                   }
                 } else if let Value::Number(num) = expr_value {
-                  // Convert number to string for object key lookup
                   let key = num.to_string();
                   if let Some(value) = obj.get(&key) {
                     Ok(value.clone())
@@ -793,50 +836,12 @@ impl Interpreter {
                   )))
                 }
               } else {
-                // Try parsing the index directly
-                if let Ok(index) = key_str.parse::<usize>() {
-                  let key = index.to_string();
-                  if let Some(value) = obj.get(&key) {
-                    return Ok(value.clone());
-                  } else {
-                    return Ok(Value::Undefined);
-                  }
-                }
-
-                // Try to evaluate as a simple expression
-                match self.try_evaluate_as_expression(key_str) {
-                  Some(index) => {
-                    let key = index.to_string();
-                    if let Some(value) = obj.get(&key) {
-                      Ok(value.clone())
-                    } else {
-                      Ok(Value::Undefined)
-                    }
-                  }
-                  None => {
-                    // If it's not an expression, try evaluating it as a variable
-                    let expr_value = self.evaluate(&Expr::Variable(key_str.to_string()))?;
-
-                    if let Value::String(key) = expr_value {
-                      if let Some(value) = obj.get(&key) {
-                        Ok(value.clone())
-                      } else {
-                        Ok(Value::Undefined)
-                      }
-                    } else if let Value::Number(num) = expr_value {
-                      let key = num.to_string();
-                      if let Some(value) = obj.get(&key) {
-                        Ok(value.clone())
-                      } else {
-                        Ok(Value::Undefined)
-                      }
-                    } else {
-                      Err(MewError::type_error(format!(
-                        "Object property name must be a string or number, got: {}",
-                        expr_value.type_name()
-                      )))
-                    }
-                  }
+                // Try other ways to evaluate the index
+                let key = key_str.to_string();
+                if let Some(value) = obj.get(&key) {
+                  Ok(value.clone())
+                } else {
+                  Ok(Value::Undefined)
                 }
               }
             } else if let Some(value) = obj.get(name) {
@@ -848,85 +853,17 @@ impl Interpreter {
           Value::Array(arr) => {
             if name == "length" {
               Ok(Value::Number(arr.len() as f64))
-            } else if name.starts_with('[') && name.ends_with(']') {
-              // Handle dynamic indexing: arr[expr]
-              let index_str = &name[1..name.len() - 1];
-
-              // Try evaluating as an expression first
-              let expr_result = self.evaluate(&Expr::Variable(index_str.to_string()));
-
-              if let Ok(expr_value) = expr_result {
-                if let Value::Number(n) = expr_value {
-                  let index = n as usize;
-                  if index < arr.len() {
-                    Ok(arr[index].clone())
-                  } else {
-                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
-                  }
-                } else {
-                  Err(MewError::type_error(format!(
-                    "Array index must be a number, got: {}",
-                    expr_value.type_name()
-                  )))
-                }
+            } else if let Ok(index) = name.parse::<usize>() {
+              if index < arr.len() {
+                Ok(arr[index].clone())
               } else {
-                // If it's not a variable, try evaluating the expression directly
-                // For expressions like i+1, <, >, etc.
-                let parsed_expression_result = match index_str.parse::<usize>() {
-                  Ok(index) => {
-                    if index < arr.len() {
-                      Ok(arr[index].clone())
-                    } else {
-                      Err(MewError::runtime(format!("Index out of bounds: {}", index)))
-                    }
-                  }
-                  Err(_) => {
-                    // Try to evaluate as a simple expression
-                    match self.try_evaluate_as_expression(index_str) {
-                      Some(index) => {
-                        if index < arr.len() {
-                          Ok(arr[index].clone())
-                        } else {
-                          Err(MewError::runtime(format!("Index out of bounds: {}", index)))
-                        }
-                      }
-                      None => Err(MewError::type_error(format!(
-                        "Invalid array index expression: {}",
-                        index_str
-                      ))),
-                    }
-                  }
-                };
-
-                parsed_expression_result
+                Err(MewError::runtime(format!("Index out of bounds: {}", index)))
               }
             } else {
-              // Try to parse the name as a number for array indices
-              if let Ok(index) = name.parse::<usize>() {
-                if index < arr.len() {
-                  Ok(arr[index].clone())
-                } else {
-                  Err(MewError::runtime(format!("Index out of bounds: {}", index)))
-                }
-              } else {
-                // Special case for internal variables
-                if name.starts_with("__index_")
-                  || name.starts_with("__key_")
-                  || name.starts_with("__keys_")
-                  || name.starts_with("__values_")
-                  || name.starts_with("__iterator_")
-                {
-                  Err(MewError::runtime(format!(
-                    "Internal variable '{}' not available on this array",
-                    name
-                  )))
-                } else {
-                  Err(MewError::type_error(format!(
-                    "Cannot access property '{}' of array",
-                    name
-                  )))
-                }
-              }
+              Err(MewError::type_error(format!(
+                "Cannot access property '{}' of array",
+                name
+              )))
             }
           }
           Value::String(s) => {
@@ -942,15 +879,15 @@ impl Interpreter {
           _ => Err(MewError::type_error(format!(
             "Cannot access property '{}' of {}",
             name,
-            object.type_name()
+            object_value.type_name()
           ))),
         }
       }
-      Expr::Set(object, name, value) => {
-        let object = self.evaluate(&*object)?;
-        let value = self.evaluate(&*value)?;
+      Expr::Set(object, name, value_expr) => {
+        let object_value = self.evaluate(&*object)?;
+        let value = self.evaluate(&*value_expr)?;
 
-        match object {
+        match object_value {
           Value::Object(mut obj) => {
             obj.insert(name.clone(), value.clone());
             Ok(value)
@@ -973,7 +910,7 @@ impl Interpreter {
           _ => Err(MewError::type_error(format!(
             "Cannot set property '{}' of {}",
             name,
-            object.type_name()
+            object_value.type_name()
           ))),
         }
       }
@@ -1138,7 +1075,6 @@ impl Interpreter {
           _ => Err(MewError::syntax("Invalid increment target")),
         }
       }
-
       Expr::Decrement(target, is_prefix) => {
         match &**target {
           Expr::Variable(name) => {
@@ -1972,6 +1908,7 @@ impl Interpreter {
   }
 
   // Helper method to evaluate simple expressions that might be array indices
+  #[allow(dead_code)]
   fn try_evaluate_as_expression(&mut self, expr_str: &str) -> Option<usize> {
     // Try to handle simple expressions like i+1, i-1, etc.
 
@@ -2052,6 +1989,53 @@ impl Interpreter {
     }
 
     None
+  }
+
+  // Native toString implementation for all value types
+  fn native_to_string(args: Vec<Value>) -> MewResult<Value> {
+    if args.is_empty() {
+      return Err(MewError::runtime("toString requires at least one argument"));
+    }
+
+    let arg = &args[0];
+    let string_repr = match arg {
+      Value::Null => "null".to_string(),
+      Value::Undefined => "undefined".to_string(),
+      Value::Number(n) => {
+        if n.is_nan() {
+          "NaN".to_string()
+        } else if n.is_infinite() {
+          if n.is_sign_positive() {
+            "Infinity".to_string()
+          } else {
+            "-Infinity".to_string()
+          }
+        } else if n.fract() == 0.0 {
+          format!("{}", *n as i64)
+        } else {
+          n.to_string()
+        }
+      }
+      Value::Bool(b) => b.to_string(),
+      Value::String(s) => s.clone(),
+      Value::Array(arr) => {
+        let elements: Vec<String> = arr.iter().map(|v| v.to_string()).collect();
+        format!("[{}]", elements.join(","))
+      }
+      Value::Object(_) => "[object Object]".to_string(),
+      Value::Function(func) => {
+        if let Some(name) = &func.name {
+          format!("function {}(...)", name)
+        } else {
+          "function(...)".to_string()
+        }
+      }
+      Value::NativeFunction(func) => {
+        format!("function {}(...) [native]", func.name)
+      }
+    };
+
+    Ok(Value::String(string_repr))
   }
 }
 

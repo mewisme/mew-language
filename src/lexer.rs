@@ -91,6 +91,7 @@ pub enum TokenKind {
   Dot,
   Semicolon,
   Colon,
+  Question,
   Arrow,
 
   // End of file
@@ -175,6 +176,7 @@ impl MewLexer {
       '.' => self.add_token(TokenKind::Dot),
       ';' => self.add_token(TokenKind::Semicolon),
       ':' => self.add_token(TokenKind::Colon),
+      '?' => self.add_token(TokenKind::Question),
 
       // Operators that might be two characters
       '+' => {
@@ -204,19 +206,16 @@ impl MewLexer {
       }
       '/' => {
         if self.match_char('/') {
-          // Comment goes until end of line
           while self.peek() != '\n' && !self.is_at_end() {
             self.advance();
           }
         } else if self.match_char('*') {
-          // Multi-line comment
           loop {
-            // Handle nested comments and ensure proper advancing
             if self.is_at_end() {
               return Err(MewError::syntax("Unterminated multi-line comment"));
             } else if self.peek() == '*' && self.peek_next() == '/' {
-              self.advance(); // consume '*'
-              self.advance(); // consume '/'
+              self.advance();
+              self.advance();
               break;
             } else if self.peek() == '\n' {
               self.line += 1;
@@ -288,20 +287,16 @@ impl MewLexer {
         }
       }
 
-      // String literals
       '"' => self.string('"')?,
       '\'' => self.string('\'')?,
 
-      // Whitespace
       ' ' | '\r' | '\t' | '\n' | '\x0C' => {
         if c == '\n' {
           self.line += 1;
           self.column = 1;
         }
-        // Skip whitespace
       }
 
-      // Numbers or identifiers
       _ => {
         if c.is_ascii_digit() {
           self.number()?;
@@ -322,12 +317,10 @@ impl MewLexer {
   fn string(&mut self, quote: char) -> MewResult<()> {
     let mut value = String::new();
 
-    // Continue until we hit the closing quote
     while self.peek() != quote && !self.is_at_end() {
       let c = self.advance();
 
       if c == '\\' && !self.is_at_end() {
-        // Handle escape sequences
         let next = self.advance();
         match next {
           'n' => value.push('\n'),
@@ -360,10 +353,8 @@ impl MewLexer {
       ));
     }
 
-    // Consume the closing quote
     self.advance();
 
-    // Create the token with the string value
     let lexeme = self.source[self.start..self.current].to_string();
     self.tokens.push(Token::new(
       TokenKind::String(value),
@@ -376,23 +367,18 @@ impl MewLexer {
   }
 
   fn number(&mut self) -> MewResult<()> {
-    // Consume all digits
     while self.peek().is_ascii_digit() {
       self.advance();
     }
 
-    // Look for a decimal part
     if self.peek() == '.' && self.peek_next().is_ascii_digit() {
-      // Consume the dot
       self.advance();
 
-      // Consume the fractional part
       while self.peek().is_ascii_digit() {
         self.advance();
       }
     }
 
-    // Convert to actual number
     let lexeme = self.source[self.start..self.current].to_string();
     let value = match f64::from_str(&lexeme) {
       Ok(v) => v,
@@ -415,12 +401,10 @@ impl MewLexer {
   }
 
   fn identifier(&mut self) -> MewResult<()> {
-    // Consume all alphanumeric characters and underscores
     while self.peek().is_ascii_alphanumeric() || self.peek() == '_' || self.peek() == '?' {
       self.advance();
     }
 
-    // Check if this is a keyword
     let lexeme = self.source[self.start..self.current].to_string();
     let kind = match lexeme.as_str() {
       // Keywords
@@ -468,8 +452,6 @@ impl MewLexer {
 
     Ok(())
   }
-
-  // Helper methods
 
   fn is_at_end(&self) -> bool {
     self.current >= self.source.len()

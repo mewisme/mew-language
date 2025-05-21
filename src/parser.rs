@@ -55,6 +55,7 @@ impl fmt::Display for Expr {
           write!(f, "{}--", expr)
         }
       }
+      Expr::Ternary(_, _, _) => write!(f, "<ternary-expr>"),
     }
   }
 }
@@ -76,7 +77,6 @@ impl Parser {
       match self.declaration() {
         Ok(stmt) => statements.push(Rc::new(RefCell::new(stmt))),
         Err(e) => {
-          // Attempt to synchronize to recover from errors
           self.synchronize();
           return Err(e);
         }
@@ -266,7 +266,7 @@ impl Parser {
     )?;
 
     Ok(Stmt::Block(vec![
-      body.clone(), // Clone before using it again
+      body.clone(),
       Rc::new(RefCell::new(Stmt::While(condition, body))),
     ]))
   }
@@ -409,7 +409,7 @@ impl Parser {
           Box::new(Expr::Variable(collection_var.clone())),
           String::from("[") + &index_var + "]",
         )),
-        true, // is_const = true
+        true,
       );
 
       Stmt::Block(vec![
@@ -417,7 +417,7 @@ impl Parser {
         Rc::new(RefCell::new(body)),
         Rc::new(RefCell::new(Stmt::Expression(Expr::Increment(
           Box::new(Expr::Variable(index_var.clone())),
-          false, // postfix increment
+          false,
         )))),
       ])
     } else {
@@ -434,7 +434,7 @@ impl Parser {
         Rc::new(RefCell::new(body)),
         Rc::new(RefCell::new(Stmt::Expression(Expr::Increment(
           Box::new(Expr::Variable(index_var.clone())),
-          false, // postfix increment
+          false,
         )))),
       ])
     };
@@ -547,16 +547,32 @@ impl Parser {
     let expr = self.or()?;
 
     if self.match_tokens(&[TokenKind::Equal]) {
-      let _equals = self.previous();
       let value = self.assignment()?;
 
       if let Expr::Variable(name) = expr {
         return Ok(Expr::Assignment(name, Box::new(value)));
-      } else if let Expr::Get(object, name) = expr {
-        return Ok(Expr::Set(object, name, Box::new(value)));
+      } else if let Expr::Get(obj, name) = expr {
+        return Ok(Expr::Set(obj, name, Box::new(value)));
       }
 
       return Err(MewError::syntax("Invalid assignment target."));
+    }
+
+    if self.match_tokens(&[TokenKind::Question]) {
+      let then_expr = self.assignment()?;
+
+      self.consume(
+        TokenKind::Colon,
+        "Expected ':' after then branch of conditional expression.",
+      )?;
+
+      let else_expr = self.assignment()?;
+
+      return Ok(Expr::Ternary(
+        Box::new(expr),
+        Box::new(then_expr),
+        Box::new(else_expr),
+      ));
     }
 
     Ok(expr)
@@ -681,9 +697,9 @@ impl Parser {
       match &right {
         Expr::Variable(_) | Expr::Get(_, _) => {
           if is_increment {
-            return Ok(Expr::Increment(Box::new(right), true)); // prefix
+            return Ok(Expr::Increment(Box::new(right), true));
           } else {
-            return Ok(Expr::Decrement(Box::new(right), true)); // prefix
+            return Ok(Expr::Decrement(Box::new(right), true));
           }
         }
         _ => return Err(MewError::syntax("Invalid increment/decrement target.")),
@@ -716,9 +732,9 @@ impl Parser {
         match &expr {
           Expr::Variable(_) | Expr::Get(_, _) => {
             if is_increment {
-              expr = Expr::Increment(Box::new(expr), false); // postfix
+              expr = Expr::Increment(Box::new(expr), false);
             } else {
-              expr = Expr::Decrement(Box::new(expr), false); // postfix
+              expr = Expr::Decrement(Box::new(expr), false);
             }
           }
           _ => return Err(MewError::syntax("Invalid increment/decrement target.")),
@@ -773,7 +789,6 @@ impl Parser {
       return Ok(Expr::Literal(Value::Undefined));
     }
 
-    // Matching number
     if self.check_type_variant::<f64>(&TokenKind::Number(0.0)) {
       if self.match_tokens(&[TokenKind::Number(0.0)]) {
         if let TokenKind::Number(n) = self.previous().kind {
@@ -782,7 +797,6 @@ impl Parser {
       }
     }
 
-    // Matching string
     if self.check_type_variant::<String>(&TokenKind::String(String::new())) {
       if self.match_tokens(&[TokenKind::String(String::new())]) {
         if let TokenKind::String(s) = &self.previous().kind {
@@ -817,7 +831,6 @@ impl Parser {
       return self.function_expression();
     }
 
-    // Matching identifier
     if self.check_type_variant::<String>(&TokenKind::Identifier(String::new())) {
       if self.match_tokens(&[TokenKind::Identifier(String::new())]) {
         if let TokenKind::Identifier(name) = &self.previous().kind {
