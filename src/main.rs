@@ -13,120 +13,53 @@
 // You should have received a copy of the GNU General Public License
 // along with Mew Language.  If not, see <https://www.gnu.org/licenses/>.
 
+mod cli;
 mod error;
 mod interpreter;
 mod lexer;
 mod parser;
 mod value;
 
-use clap::{Parser, Subcommand};
-use error::MewResult;
-use rustyline::error::ReadlineError;
-use rustyline::Editor as DefaultEditor;
-use std::fs;
-use std::path::Path;
+use clap::Parser;
+use cli::{Cli, Commands};
 use std::process;
 
-#[derive(Parser)]
-#[command(name = "mew")]
-#[command(about = "A cat-themed programming language", long_about = None)]
-struct Cli {
-  #[command(subcommand)]
-  command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-  /// Runs a .mew file
-  Run {
-    /// The path to the .mew file
-    file_path: String,
-  },
-  /// Get the version of Mew
-  Version,
-}
-
 fn main() {
+  // Check if there was an upgrade completed recently
+  cli::check_upgrade_completed();
+
   let cli = Cli::parse();
 
   match &cli.command {
     Some(Commands::Run { file_path }) => {
-      if let Err(e) = run_file(file_path) {
+      if let Err(e) = cli::run_file(file_path) {
         eprintln!("hiss! Error: {}", e);
         process::exit(1);
       }
     }
     Some(Commands::Version) => {
-      let version = env!("CARGO_PKG_VERSION");
-      println!("Mew Language v{}", version);
+      cli::handle_version();
+    }
+    Some(Commands::Upgrade { force }) => {
+      let _ = cli::handle_upgrade(*force);
+    }
+    Some(Commands::Init { name }) => {
+      if let Err(e) = cli::handle_init(name.clone()) {
+        eprintln!("hiss! Error: {}", e);
+        process::exit(1);
+      }
+    }
+    Some(Commands::Start) => {
+      if let Err(e) = cli::handle_start() {
+        eprintln!("hiss! Error: {}", e);
+        process::exit(1);
+      }
     }
     None => {
-      if let Err(e) = run_repl() {
+      if let Err(e) = cli::run_repl() {
         eprintln!("hiss! Error: {}", e);
         process::exit(1);
       }
     }
   }
-}
-
-fn run_file(file_path: &str) -> error::MewResult<()> {
-  if !file_path.ends_with(".mew") {
-    eprintln!("hiss! File must have .mew extension");
-    process::exit(1);
-  }
-
-  let path = Path::new(file_path);
-  if !path.exists() {
-    eprintln!("hiss! File not found: {}", file_path);
-    process::exit(1);
-  }
-
-  let content = fs::read_to_string(path)?;
-  match interpreter::interpret(&content) {
-    Ok(_) => {
-      // No need to print anything on successful execution
-      Ok(())
-    }
-    Err(e) => {
-      eprintln!("hiss! Error: {}", e);
-      process::exit(1);
-    }
-  }
-}
-
-fn run_repl() -> MewResult<()> {
-  println!("🐱 Mew Programming Language v{}", env!("CARGO_PKG_VERSION"));
-  println!("Type 'exit' or press Ctrl+C to exit");
-
-  let mut rl = DefaultEditor::new().unwrap();
-  let helper = ();
-  rl.set_helper(Some(helper));
-
-  loop {
-    let readline = rl.readline("🐾 > ");
-    match readline {
-      Ok(line) => {
-        if line.trim() == "exit" {
-          break;
-        }
-
-        let _ = rl.add_history_entry(line.as_str());
-
-        match interpreter::interpret(&line) {
-          Ok(value) => println!("{}", value),
-          Err(e) => eprintln!("hiss! {}", e),
-        }
-      }
-      Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
-        println!("Goodbye!");
-        break;
-      }
-      Err(err) => {
-        eprintln!("hiss! Error: {}", err);
-        break;
-      }
-    }
-  }
-
-  Ok(())
 }

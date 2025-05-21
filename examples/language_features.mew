@@ -1,0 +1,176 @@
+// Comprehensive Mew Language Features
+purr("Mew Language Feature Examples");
+
+// ===== SECTION 1: VARIABLES AND DATA TYPES =====
+purr("\n1. Variables and Data Types:");
+
+// Variable declarations with different types
+catst PI = 3.14159;  // Constant (can't be reassigned)
+catlt name = "Whiskers";  // Let variable
+catv counter = 0;  // Var variable
+
+// Different data types
+catlt numberValue = 42;  // Number
+catlt stringValue = "Hello Mew!";  // String
+catlt boolValue = true;  // Boolean
+catlt nullValue = null;  // Null
+catlt undefinedValue = undefined;  // Undefined
+
+// Display variable values
+purr("PI value (constant): " + PI);
+purr("Name (let): " + name);
+purr("Counter (var): " + counter);
+
+// Display data types
+purr("Number value: " + numberValue);
+purr("String value: " + stringValue); 
+purr("Boolean value: " + boolValue);
+purr("Null value: " + nullValue);
+purr("Undefined value: " + undefinedValue);
+
+// ===== SECTION 2: OPERATORS =====
+purr("\n2. Operators:");
+
+// Arithmetic operators
+purr("Addition: " + (5 + 3));
+purr("Subtraction: " + (10 - 4));
+purr("Multiplication: " + (6 * 7));
+purr("Division: " + (20 / 4));
+purr("Modulus: " + (17 % 5));
+
+// Increment/decrement
+catlt x = 10;
+purr("Initial x: " + x);
+purr("Prefix increment (++x): " + (++x));  // Now x is 11
+purr("Postfix increment (x++): " + (x++));  // Returns 11, then x becomes 12
+purr("After operations, x is: " + x);  // Shows 12
+
+// Comparison operators
+purr("Equality (5 == 5): " + (5 == 5));
+purr("Inequality (5 != 3): " + (5 != 3));
+purr("Greater than (5 > 3): " + (5 > 3));
+purr("Less than or equal (5 <= 5): " + (5 <= 5));
+
+// Logical operators
+purr("Logical AND (true && true): " + (true && true));
+purr("Logical OR (false || true): " + (false || true));
+purr("Logical NOT (!false): " + (!false));
+
+// ===== SECTION 3: CONTROL FLOW =====
+purr("\n3. Control Flow:");
+
+// If statement
+catlt temperature = 28;
+purr("Temperature is: " + temperature);
+
+meow? (temperature > 30) {
+    purr("It's hot outside!");
+} meowse? (temperature > 20) {
+    purr("It's warm outside.");
+} hiss {
+    purr("It's cool outside.");
+}
+
+// Simplified if statement
+catlt dayType = "";
+catlt day = "Saturday";
+
+meow? (day == "Saturday" || day == "Sunday") {
+    dayType = "weekend";
+} hiss {
+    dayType = "weekday";
+}
+purr("Today is a " + dayType);
+
+// ===== SECTION 4: LOOPS =====
+purr("\n4. Loops:");
+
+// For loop
+purr("For loop counting from 1 to 5:");
+fur (catlt i = 1; i <= 5; i++) {
+    purr("Count: " + i);
+}
+
+// While loop
+purr("\nWhile loop counting down from 5:");
+catlt countdown = 5;
+mewhile (countdown > 0) {
+    purr("Countdown: " + countdown);
+    countdown--;
+}
+
+// ===== SECTION 5: ARRAYS =====
+purr("\n5. Arrays:");
+
+// Array declaration and initialization
+catlt fruits = ["apple", "banana", "cherry", "date"];
+purr("Fruits array: " + fruits);
+purr("Array length: " + fruits.length);
+
+// Accessing array elements
+purr("First fruit: " + fruits[0]);
+purr("Last fruit: " + fruits[3]);  // Using direct index instead of length-1
+
+// Array iteration
+purr("\nIterating through array using for loop:");
+fur (catlt i = 0; i < fruits.length; i++) {
+    purr("Fruit " + (i + 1) + ": " + fruits[i]);
+}
+
+// ===== SECTION 6: FUNCTIONS =====
+purr("\n6. Functions:");
+
+// Basic function
+cat greet(name) {
+    return "Hello, " + name + "!";
+}
+purr(greet("Mew"));
+
+// Function with multiple parameters
+cat add(a, b) {
+    return a + b;
+}
+purr("2 + 3 = " + add(2, 3));
+
+// Function with calculations
+cat power(base, exponent) {
+    catlt result = 1;
+    fur (catlt i = 0; i < exponent; i++) {
+        result = result * base;
+    }
+    return result;
+}
+purr("2^3 = " + power(2, 3));
+
+// Recursive function
+cat factorial(n) {
+    meow? (n <= 1) {
+        return 1;
+    } hiss {
+        return n * factorial(n - 1);
+    }
+}
+purr("Factorial of 5: " + factorial(5));
+
+// Function expression (anonymous function)
+catlt multiply = cat(a, b) {
+    return a * b;
+};
+purr("4 * 5 = " + multiply(4, 5));
+
+// ===== SECTION 7: SCOPE =====
+purr("\n7. Scope:");
+
+// Global and local scope
+catv globalVar = "I'm global";
+
+cat testScope() {
+    catlt localVar = "I'm local";
+    purr("Inside function - globalVar: " + globalVar);
+    purr("Inside function - localVar: " + localVar);
+}
+
+testScope();
+purr("Outside function - globalVar: " + globalVar);
+
+purr("\nAll language features demonstrated successfully!"); 

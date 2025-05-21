@@ -50,6 +50,33 @@ impl Interpreter {
       true,
     );
 
+    // Create Object global with static methods
+    let mut object_methods = HashMap::new();
+
+    // Add Object.keys method
+    object_methods.insert(
+      "keys".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "keys".to_string(),
+        function: Self::native_object_keys,
+      })),
+    );
+
+    // Add Object.values method
+    object_methods.insert(
+      "values".to_string(),
+      Value::NativeFunction(Rc::new(NativeFunction {
+        name: "values".to_string(),
+        function: Self::native_object_values,
+      })),
+    );
+
+    // Define the Object global
+    self
+      .globals
+      .borrow_mut()
+      .define("Object", Value::Object(object_methods), true);
+
     // Native time function
     self.globals.borrow_mut().define(
       "time",
@@ -215,6 +242,59 @@ impl Interpreter {
       args[0],
       Value::Function(_) | Value::NativeFunction(_)
     )))
+  }
+
+  // Static native functions for Object methods
+  fn native_object_keys(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Object.keys requires exactly one argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Object(obj) => {
+        // Extract keys from object
+        let keys: Vec<Value> = obj.keys().map(|k| Value::String(k.clone())).collect();
+
+        Ok(Value::Array(keys))
+      }
+      Value::Array(arr) => {
+        // For arrays, return the indices as numbers (not strings)
+        let keys: Vec<Value> = (0..arr.len()).map(|i| Value::Number(i as f64)).collect();
+
+        Ok(Value::Array(keys))
+      }
+      _ => Err(MewError::type_error(format!(
+        "Object.keys requires an object or array, got {}",
+        args[0].type_name()
+      ))),
+    }
+  }
+
+  fn native_object_values(args: Vec<Value>) -> MewResult<Value> {
+    if args.len() != 1 {
+      return Err(MewError::runtime(
+        "Object.values requires exactly one argument",
+      ));
+    }
+
+    match &args[0] {
+      Value::Object(obj) => {
+        // Extract values from object
+        let values: Vec<Value> = obj.values().cloned().collect();
+
+        Ok(Value::Array(values))
+      }
+      Value::Array(arr) => {
+        // For arrays, return a clone of the array
+        Ok(Value::Array(arr.clone()))
+      }
+      _ => Err(MewError::type_error(format!(
+        "Object.values requires an object or array, got {}",
+        args[0].type_name()
+      ))),
+    }
   }
 
   pub fn interpret(&mut self, statements: &[Rc<RefCell<Stmt>>]) -> MewResult<Value> {
@@ -463,7 +543,69 @@ impl Interpreter {
 
         match object {
           Value::Object(obj) => {
-            if let Some(value) = obj.get(name) {
+            if name.starts_with('[') && name.ends_with(']') {
+              // Handle dynamic property access: obj[expr]
+              let key_str = &name[1..name.len() - 1];
+
+              if let Ok(expr_value) = self.evaluate(&Expr::Variable(key_str.to_string())) {
+                if let Value::String(key) = expr_value {
+                  if let Some(value) = obj.get(&key) {
+                    Ok(value.clone())
+                  } else {
+                    Ok(Value::Undefined)
+                  }
+                } else if let Value::Number(num) = expr_value {
+                  // Convert number to string for object key lookup
+                  let key = num.to_string();
+                  if let Some(value) = obj.get(&key) {
+                    Ok(value.clone())
+                  } else {
+                    Ok(Value::Undefined)
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Object property name must be a string or number, got: {}",
+                    expr_value.type_name()
+                  )))
+                }
+              } else {
+                // Try evaluating the index as a direct expression
+                let parsed_result = key_str.parse::<usize>();
+
+                if let Ok(index) = parsed_result {
+                  let key = index.to_string();
+                  if let Some(value) = obj.get(&key) {
+                    return Ok(value.clone());
+                  } else {
+                    return Ok(Value::Undefined);
+                  }
+                }
+
+                // If it's not a variable, try evaluating it as a direct expression
+                let expr_value = self.evaluate(&Expr::Variable(key_str.to_string()))?;
+
+                if let Value::String(key) = expr_value {
+                  if let Some(value) = obj.get(&key) {
+                    Ok(value.clone())
+                  } else {
+                    Ok(Value::Undefined)
+                  }
+                } else if let Value::Number(num) = expr_value {
+                  // Convert number to string for object key lookup
+                  let key = num.to_string();
+                  if let Some(value) = obj.get(&key) {
+                    Ok(value.clone())
+                  } else {
+                    Ok(Value::Undefined)
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Object property name must be a string or number, got: {}",
+                    expr_value.type_name()
+                  )))
+                }
+              }
+            } else if let Some(value) = obj.get(name) {
               Ok(value.clone())
             } else {
               Ok(Value::Undefined)
@@ -471,18 +613,68 @@ impl Interpreter {
           }
           Value::Array(arr) => {
             if name == "length" {
+              // Special property: length
               Ok(Value::Number(arr.len() as f64))
-            } else if let Ok(index) = name.parse::<usize>() {
-              if index < arr.len() {
-                Ok(arr[index].clone())
+            } else if name.starts_with('[') && name.ends_with(']') {
+              // Handle dynamic indexing: arr[expr]
+              let index_str = &name[1..name.len() - 1];
+
+              if let Ok(expr_value) = self.evaluate(&Expr::Variable(index_str.to_string())) {
+                if let Value::Number(n) = expr_value {
+                  let index = n as usize;
+                  if index < arr.len() {
+                    Ok(arr[index].clone())
+                  } else {
+                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Array index must be a number, got: {}",
+                    expr_value.type_name()
+                  )))
+                }
               } else {
-                Ok(Value::Undefined)
+                // Try parsing the index directly
+                if let Ok(index) = index_str.parse::<usize>() {
+                  if index < arr.len() {
+                    Ok(arr[index].clone())
+                  } else {
+                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Invalid array index: {}",
+                    index_str
+                  )))
+                }
               }
             } else {
-              Err(MewError::type_error(format!(
-                "Cannot access property '{}' of array",
-                name
-              )))
+              // Try to parse the name as a number for array indices
+              if let Ok(index) = name.parse::<usize>() {
+                if index < arr.len() {
+                  Ok(arr[index].clone())
+                } else {
+                  Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                }
+              } else {
+                // Special case for our internal variable names
+                if name.starts_with("__index_")
+                  || name.starts_with("__key_")
+                  || name.starts_with("__keys_")
+                  || name.starts_with("__values_")
+                  || name.starts_with("__iterator_")
+                {
+                  Err(MewError::runtime(format!(
+                    "Internal variable '{}' not available on this array",
+                    name
+                  )))
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Cannot access property '{}' of array",
+                    name
+                  )))
+                }
+              }
             }
           }
           _ => Err(MewError::type_error(format!(
@@ -550,6 +742,283 @@ impl Interpreter {
         });
 
         Ok(Value::Function(function))
+      }
+      Expr::Increment(target, is_prefix) => {
+        // Handle both prefix (++x) and postfix (x++) increment
+        match &**target {
+          Expr::Variable(name) => {
+            let current = self.environment.borrow().get(name)?;
+
+            if let Value::Number(n) = current {
+              let new_value = Value::Number(n + 1.0);
+              self
+                .environment
+                .borrow_mut()
+                .assign(name, new_value.clone())?;
+
+              if *is_prefix {
+                // For prefix (++x), return the new value
+                Ok(new_value)
+              } else {
+                // For postfix (x++), return the original value
+                Ok(Value::Number(n))
+              }
+            } else {
+              Err(MewError::type_error(format!(
+                "Cannot increment a non-number value: {}",
+                current.type_name()
+              )))
+            }
+          }
+          Expr::Get(object, property_name) => {
+            let object_value = self.evaluate(object)?;
+
+            match object_value {
+              Value::Object(mut obj) => {
+                if let Some(value) = obj.get(property_name) {
+                  if let Value::Number(n) = value {
+                    let new_value = Value::Number(n + 1.0);
+                    let old_value = Value::Number(*n);
+                    obj.insert(property_name.clone(), new_value.clone());
+
+                    if *is_prefix {
+                      // For prefix (++obj.prop), return the new value
+                      Ok(new_value)
+                    } else {
+                      // For postfix (obj.prop++), return the original value
+                      Ok(old_value)
+                    }
+                  } else {
+                    Err(MewError::type_error(format!(
+                      "Cannot increment a non-number property: {}",
+                      property_name
+                    )))
+                  }
+                } else {
+                  Err(MewError::name(format!(
+                    "Property not found: {}",
+                    property_name
+                  )))
+                }
+              }
+              Value::Array(mut arr) => {
+                if property_name == "length" {
+                  return Err(MewError::type_error("Cannot increment array length"));
+                }
+
+                if let Ok(index) = property_name.parse::<usize>() {
+                  if index < arr.len() {
+                    if let Value::Number(n) = arr[index] {
+                      let new_value = Value::Number(n + 1.0);
+                      arr[index] = new_value.clone();
+
+                      if *is_prefix {
+                        // For prefix (++arr[i]), return the new value
+                        Ok(new_value)
+                      } else {
+                        // For postfix (arr[i]++), return the original value
+                        Ok(Value::Number(n))
+                      }
+                    } else {
+                      Err(MewError::type_error(format!(
+                        "Cannot increment a non-number array element"
+                      )))
+                    }
+                  } else {
+                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                  }
+                } else if property_name.starts_with('[') && property_name.ends_with(']') {
+                  // Handle the dynamic array indexing case (similar to Get handling)
+                  let index_str = &property_name[1..property_name.len() - 1];
+                  if let Ok(expr_value) = self.evaluate(&Expr::Variable(index_str.to_string())) {
+                    if let Value::Number(n) = expr_value {
+                      let index = n as usize;
+                      if index < arr.len() {
+                        if let Value::Number(element_val) = arr[index] {
+                          let new_value = Value::Number(element_val + 1.0);
+                          arr[index] = new_value.clone();
+
+                          if *is_prefix {
+                            // For prefix (++arr[i]), return the new value
+                            Ok(new_value)
+                          } else {
+                            // For postfix (arr[i]++), return the original value
+                            Ok(Value::Number(element_val))
+                          }
+                        } else {
+                          Err(MewError::type_error(
+                            "Cannot increment a non-number array element",
+                          ))
+                        }
+                      } else {
+                        Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                      }
+                    } else {
+                      Err(MewError::type_error(format!(
+                        "Array index must be a number, got: {}",
+                        expr_value.type_name()
+                      )))
+                    }
+                  } else {
+                    Err(MewError::type_error(format!(
+                      "Invalid array index: {}",
+                      index_str
+                    )))
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Cannot access property '{}' of array",
+                    property_name
+                  )))
+                }
+              }
+              _ => Err(MewError::type_error(format!(
+                "Cannot access property of {}",
+                object_value.type_name()
+              ))),
+            }
+          }
+          _ => Err(MewError::syntax("Invalid increment target")),
+        }
+      }
+
+      Expr::Decrement(target, is_prefix) => {
+        // Handle both prefix (--x) and postfix (x--) decrement
+        match &**target {
+          Expr::Variable(name) => {
+            let current = self.environment.borrow().get(name)?;
+
+            if let Value::Number(n) = current {
+              let new_value = Value::Number(n - 1.0);
+              self
+                .environment
+                .borrow_mut()
+                .assign(name, new_value.clone())?;
+
+              if *is_prefix {
+                // For prefix (--x), return the new value
+                Ok(new_value)
+              } else {
+                // For postfix (x--), return the original value
+                Ok(Value::Number(n))
+              }
+            } else {
+              Err(MewError::type_error(format!(
+                "Cannot decrement a non-number value: {}",
+                current.type_name()
+              )))
+            }
+          }
+          Expr::Get(object, property_name) => {
+            let object_value = self.evaluate(object)?;
+
+            match object_value {
+              Value::Object(mut obj) => {
+                if let Some(value) = obj.get(property_name) {
+                  if let Value::Number(n) = value {
+                    let new_value = Value::Number(n - 1.0);
+                    let old_value = Value::Number(*n);
+                    obj.insert(property_name.clone(), new_value.clone());
+
+                    if *is_prefix {
+                      // For prefix (--obj.prop), return the new value
+                      Ok(new_value)
+                    } else {
+                      // For postfix (obj.prop--), return the original value
+                      Ok(old_value)
+                    }
+                  } else {
+                    Err(MewError::type_error(format!(
+                      "Cannot decrement a non-number property: {}",
+                      property_name
+                    )))
+                  }
+                } else {
+                  Err(MewError::name(format!(
+                    "Property not found: {}",
+                    property_name
+                  )))
+                }
+              }
+              Value::Array(mut arr) => {
+                if property_name == "length" {
+                  return Err(MewError::type_error("Cannot decrement array length"));
+                }
+
+                if let Ok(index) = property_name.parse::<usize>() {
+                  if index < arr.len() {
+                    if let Value::Number(n) = arr[index] {
+                      let new_value = Value::Number(n - 1.0);
+                      arr[index] = new_value.clone();
+
+                      if *is_prefix {
+                        // For prefix (--arr[i]), return the new value
+                        Ok(new_value)
+                      } else {
+                        // For postfix (arr[i]--), return the original value
+                        Ok(Value::Number(n))
+                      }
+                    } else {
+                      Err(MewError::type_error(format!(
+                        "Cannot decrement a non-number array element"
+                      )))
+                    }
+                  } else {
+                    Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                  }
+                } else if property_name.starts_with('[') && property_name.ends_with(']') {
+                  // Handle the dynamic array indexing case (similar to Get handling)
+                  let index_str = &property_name[1..property_name.len() - 1];
+                  if let Ok(expr_value) = self.evaluate(&Expr::Variable(index_str.to_string())) {
+                    if let Value::Number(n) = expr_value {
+                      let index = n as usize;
+                      if index < arr.len() {
+                        if let Value::Number(element_val) = arr[index] {
+                          let new_value = Value::Number(element_val - 1.0);
+                          arr[index] = new_value.clone();
+
+                          if *is_prefix {
+                            // For prefix (--arr[i]), return the new value
+                            Ok(new_value)
+                          } else {
+                            // For postfix (arr[i]--), return the original value
+                            Ok(Value::Number(element_val))
+                          }
+                        } else {
+                          Err(MewError::type_error(
+                            "Cannot decrement a non-number array element",
+                          ))
+                        }
+                      } else {
+                        Err(MewError::runtime(format!("Index out of bounds: {}", index)))
+                      }
+                    } else {
+                      Err(MewError::type_error(format!(
+                        "Array index must be a number, got: {}",
+                        expr_value.type_name()
+                      )))
+                    }
+                  } else {
+                    Err(MewError::type_error(format!(
+                      "Invalid array index: {}",
+                      index_str
+                    )))
+                  }
+                } else {
+                  Err(MewError::type_error(format!(
+                    "Cannot access property '{}' of array",
+                    property_name
+                  )))
+                }
+              }
+              _ => Err(MewError::type_error(format!(
+                "Cannot access property of {}",
+                object_value.type_name()
+              ))),
+            }
+          }
+          _ => Err(MewError::syntax("Invalid decrement target")),
+        }
       }
     }
   }

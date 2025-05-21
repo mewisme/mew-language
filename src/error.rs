@@ -54,7 +54,6 @@ impl MewError {
 
 pub type MewResult<T> = Result<T, MewError>;
 
-// Location information for error reporting
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Location {
   pub line: usize,

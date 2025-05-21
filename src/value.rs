@@ -166,6 +166,8 @@ pub enum Expr {
   ArrayLiteral(Vec<Expr>),
   ObjectLiteral(Vec<(String, Expr)>),
   Function(Option<String>, Vec<String>, Vec<Rc<RefCell<Stmt>>>),
+  Increment(Box<Expr>, bool), // variable, is_prefix (true for ++i, false for i++)
+  Decrement(Box<Expr>, bool), // variable, is_prefix (true for --i, false for i--)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

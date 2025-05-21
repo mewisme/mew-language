@@ -41,6 +41,20 @@ impl fmt::Display for Expr {
           write!(f, "function(...)")
         }
       }
+      Expr::Increment(expr, is_prefix) => {
+        if *is_prefix {
+          write!(f, "++{}", expr)
+        } else {
+          write!(f, "{}++", expr)
+        }
+      }
+      Expr::Decrement(expr, is_prefix) => {
+        if *is_prefix {
+          write!(f, "--{}", expr)
+        } else {
+          write!(f, "{}--", expr)
+        }
+      }
     }
   }
 }
@@ -259,20 +273,49 @@ impl Parser {
   fn for_statement(&mut self) -> MewResult<Stmt> {
     self.consume(TokenKind::LeftParen, "Expected '(' after 'fur'.")?;
 
-    // Initializer
-    let initializer = if self.match_tokens(&[TokenKind::Semicolon]) {
-      None
-    } else if self.match_tokens(&[TokenKind::Var, TokenKind::Let, TokenKind::Const]) {
-      Some(self.var_declaration()?)
-    } else {
-      Some(self.expression_statement()?)
-    };
+    // Handle initializer
+    let initializer;
 
-    // Check for for-in or for-of
-    if initializer.is_some()
-      && (self.match_tokens(&[TokenKind::In]) || self.match_tokens(&[TokenKind::Of]))
-    {
-      return self.for_in_of_statement(initializer.unwrap());
+    // Check for variable declaration (let/var/const)
+    if self.match_tokens(&[TokenKind::Var, TokenKind::Let, TokenKind::Const]) {
+      let token = self.previous();
+      let is_const = token.kind == TokenKind::Const;
+
+      // Get the variable name
+      let var_name = self.consume_identifier("Expected variable name.")?;
+
+      // Check for initializer (=)
+      let var_initializer = if self.match_tokens(&[TokenKind::Equal]) {
+        Some(self.expression()?)
+      } else {
+        None
+      };
+
+      // Check for in/of without requiring semicolon
+      if self.match_tokens(&[TokenKind::In]) || self.match_tokens(&[TokenKind::Of]) {
+        let is_of = self.previous().kind == TokenKind::Of;
+        return self.for_in_of_statement(
+          Stmt::VarDeclaration(var_name, var_initializer, is_const),
+          is_of,
+        );
+      }
+
+      // If it's a regular for loop, consume semicolon
+      self.consume(
+        TokenKind::Semicolon,
+        "Expected ';' after variable declaration.",
+      )?;
+
+      initializer = Some(Stmt::VarDeclaration(var_name, var_initializer, is_const));
+    } else if self.match_tokens(&[TokenKind::Semicolon]) {
+      // Empty initializer
+      initializer = None;
+    } else {
+      // Expression initializer
+      initializer = Some(self.expression_statement()?);
+
+      // After an expression statement, we could have a for-in/of loop too
+      // But the expression_statement() already consumed the semicolon, so we can't check here
     }
 
     // Standard for loop
@@ -316,34 +359,119 @@ impl Parser {
     Ok(body)
   }
 
-  fn for_in_of_statement(&mut self, initializer: Stmt) -> MewResult<Stmt> {
-    // This is a simplification - in a real implementation, these would be separate statement types
-    let is_of = self.previous().kind == TokenKind::Of;
-
+  fn for_in_of_statement(&mut self, initializer: Stmt, is_of: bool) -> MewResult<Stmt> {
     let iterator = self.expression()?;
     self.consume(
       TokenKind::RightParen,
       "Expected ')' after for-in/of clauses.",
     )?;
 
-    let _body = self.statement()?;
+    let body = self.statement()?;
 
-    // Build a synthetic representation using existing statements
-    // In a real implementation, this would be a specific statement type
-    let _var_name = match &initializer {
-      Stmt::VarDeclaration(name, _, _) => name.clone(),
+    let (var_name, is_const) = match &initializer {
+      Stmt::VarDeclaration(name, _, const_val) => (name.clone(), *const_val),
       _ => return Err(MewError::syntax("Invalid for-in/of loop initializer.")),
     };
 
-    let method_name = if is_of { "values" } else { "keys" };
-    let iterator_call = Expr::Call(
-      Box::new(Expr::Get(Box::new(iterator), method_name.to_string())),
-      vec![],
+    let iterator_var = format!("__iterator_{}", var_name);
+    let index_var = format!("__index_{}", var_name);
+
+    let iterator_decl = Stmt::VarDeclaration(iterator_var.clone(), Some(iterator.clone()), false);
+
+    let index_decl = Stmt::VarDeclaration(
+      index_var.clone(),
+      Some(Expr::Literal(Value::Number(0.0))),
+      false,
     );
 
-    // Create a synthetic for loop
-    // This is a placeholder representation - a real implementation would be more direct
-    Ok(Stmt::Expression(iterator_call))
+    let keys_or_values = if is_of {
+      Expr::Call(
+        Box::new(Expr::Get(
+          Box::new(Expr::Variable(String::from("Object"))),
+          String::from("values"),
+        )),
+        vec![Expr::Variable(iterator_var.clone())],
+      )
+    } else {
+      Expr::Call(
+        Box::new(Expr::Get(
+          Box::new(Expr::Variable(String::from("Object"))),
+          String::from("keys"),
+        )),
+        vec![Expr::Variable(iterator_var.clone())],
+      )
+    };
+
+    let collection_var = if is_of {
+      format!("__values_{}", var_name)
+    } else {
+      format!("__keys_{}", var_name)
+    };
+    let collection_decl = Stmt::VarDeclaration(collection_var.clone(), Some(keys_or_values), false);
+
+    let condition = Expr::Binary(
+      Box::new(Expr::Variable(index_var.clone())),
+      BinaryOp::Lt,
+      Box::new(Expr::Get(
+        Box::new(Expr::Variable(collection_var.clone())),
+        String::from("length"),
+      )),
+    );
+
+    let loop_body = if is_const {
+      let const_decl = Stmt::VarDeclaration(
+        var_name.clone(),
+        Some(Expr::Get(
+          Box::new(Expr::Variable(collection_var.clone())),
+          String::from("[") + &index_var + "]",
+        )),
+        true, // is_const = true
+      );
+
+      Stmt::Block(vec![
+        Rc::new(RefCell::new(const_decl)),
+        Rc::new(RefCell::new(body)),
+        Rc::new(RefCell::new(Stmt::Expression(Expr::Increment(
+          Box::new(Expr::Variable(index_var.clone())),
+          false, // postfix increment
+        )))),
+      ])
+    } else {
+      let var_assignment = Stmt::Expression(Expr::Assignment(
+        var_name.clone(),
+        Box::new(Expr::Get(
+          Box::new(Expr::Variable(collection_var.clone())),
+          String::from("[") + &index_var + "]",
+        )),
+      ));
+
+      Stmt::Block(vec![
+        Rc::new(RefCell::new(var_assignment)),
+        Rc::new(RefCell::new(body)),
+        Rc::new(RefCell::new(Stmt::Expression(Expr::Increment(
+          Box::new(Expr::Variable(index_var.clone())),
+          false, // postfix increment
+        )))),
+      ])
+    };
+
+    let while_loop = Stmt::While(condition, Rc::new(RefCell::new(loop_body)));
+
+    let mut statements = vec![
+      Rc::new(RefCell::new(iterator_decl)),
+      Rc::new(RefCell::new(index_decl)),
+      Rc::new(RefCell::new(collection_decl)),
+    ];
+
+    if !is_const {
+      statements.push(Rc::new(RefCell::new(initializer)));
+    }
+
+    statements.push(Rc::new(RefCell::new(while_loop)));
+
+    let full_block = Stmt::Block(statements);
+
+    Ok(full_block)
   }
 
   fn break_statement(&mut self) -> MewResult<Stmt> {
@@ -557,6 +685,28 @@ impl Parser {
       return Ok(Expr::Unary(operator, Box::new(right)));
     }
 
+    // Handle prefix increment/decrement (++x, --x)
+    if self.match_tokens(&[TokenKind::Increment, TokenKind::Decrement]) {
+      let is_increment = match self.previous().kind {
+        TokenKind::Increment => true,
+        TokenKind::Decrement => false,
+        _ => unreachable!(),
+      };
+
+      let right = self.unary()?;
+
+      match &right {
+        Expr::Variable(_) | Expr::Get(_, _) => {
+          if is_increment {
+            return Ok(Expr::Increment(Box::new(right), true)); // prefix
+          } else {
+            return Ok(Expr::Decrement(Box::new(right), true)); // prefix
+          }
+        }
+        _ => return Err(MewError::syntax("Invalid increment/decrement target.")),
+      }
+    }
+
     self.call()
   }
 
@@ -572,8 +722,24 @@ impl Parser {
       } else if self.match_tokens(&[TokenKind::LeftBracket]) {
         let index = self.expression()?;
         self.consume(TokenKind::RightBracket, "Expected ']' after array index.")?;
-        // This is a simplified representation - in a real implementation, this would be a dedicated IndexGet expression
         expr = Expr::Get(Box::new(expr), format!("[{}]", index));
+      } else if self.match_tokens(&[TokenKind::Increment, TokenKind::Decrement]) {
+        let is_increment = match self.previous().kind {
+          TokenKind::Increment => true,
+          TokenKind::Decrement => false,
+          _ => unreachable!(),
+        };
+
+        match &expr {
+          Expr::Variable(_) | Expr::Get(_, _) => {
+            if is_increment {
+              expr = Expr::Increment(Box::new(expr), false); // postfix
+            } else {
+              expr = Expr::Decrement(Box::new(expr), false); // postfix
+            }
+          }
+          _ => return Err(MewError::syntax("Invalid increment/decrement target.")),
+        }
       } else {
         break;
       }

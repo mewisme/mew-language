@@ -1,0 +1,97 @@
+// String Manipulation Examples in Mew
+purr("String Examples in Mew");
+
+// ===== SECTION 1: STRING BASICS =====
+purr("\n1. String Basics:");
+
+// String declaration
+catlt greeting = "Hello";
+catlt name = "Mew";
+catlt space = " ";
+
+// String concatenation
+catlt fullGreeting = greeting + space + name + "!";
+purr("Concatenated string: " + fullGreeting);
+
+// String with numbers
+catlt age = 3;
+catlt ageString = "My cat is " + age + " years old.";
+purr(ageString);
+
+// ===== SECTION 2: WORKING WITH STRINGS =====
+purr("\n2. Working with Strings:");
+
+// Using string literals directly
+purr("Directly used: " + "Meow!");
+
+// Combining multiple strings
+catlt adjective = "fluffy";
+catlt animal = "kitten";
+purr("The " + adjective + " " + animal + " is cute.");
+
+// ===== SECTION 3: STRING COMPARISONS =====
+purr("\n3. String Comparisons:");
+
+// Equality comparison
+catlt str1 = "cat";
+catlt str2 = "cat";
+catlt str3 = "dog";
+
+purr("str1: " + str1);
+purr("str2: " + str2);
+purr("str3: " + str3);
+
+purr("str1 == str2: " + (str1 == str2));
+purr("str1 == str3: " + (str1 == str3));
+purr("str1 != str3: " + (str1 != str3));
+
+// ===== SECTION 4: STRING IN CONDITIONALS =====
+purr("\n4. Strings in Conditionals:");
+
+catlt password = "meow123";
+catlt inputPassword = "meow123";
+
+meow? (password == inputPassword) {
+    purr("Password correct!");
+} hiss {
+    purr("Password incorrect!");
+}
+
+// String conditionals with different comparisons
+catlt color = "orange";
+
+meow? (color == "orange") {
+    purr("It's an orange cat!");
+} meowse? (color == "black") {
+    purr("It's a black cat!");
+} hiss {
+    purr("It's a cat of another color.");
+}
+
+// ===== SECTION 5: STRINGS AND NUMBERS =====
+purr("\n5. Strings and Numbers:");
+
+// Converting numbers to strings (implicit)
+catlt num = 42;
+catlt numAsString = "The answer is: " + num;
+purr(numAsString);
+
+// Arithmetic within string concatenation
+purr("Calculation: " + (10 + 5) + " is the result");
+purr("Another calc: " + 10 + 5);  // This will concatenate, not add
+
+// ===== SECTION 6: SPECIAL STRINGS =====
+purr("\n6. Special Strings:");
+
+// Empty string
+catlt emptyStr = "";
+purr("Empty string: '" + emptyStr + "'");
+
+// Multiple line strings using concatenation
+catlt multiLine = "Line 1: Hello" + 
+    "\nLine 2: World" + 
+    "\nLine 3: Mew!";
+purr("Multi-line string:");
+purr(multiLine);
+
+purr("\nAll string examples completed successfully!"); 

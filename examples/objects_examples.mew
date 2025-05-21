@@ -1,0 +1,137 @@
+// Consolidated Object Examples for Mew Language
+purr("Object examples in Mew");
+
+// CORRECT: Using a non-reserved name for the object
+purr("\n1. Object with non-reserved variable name:");
+catlt kitty = {
+    name: "Whiskers",
+    age: 3,
+    color: "orange"
+};
+purr("Cat details:");
+purr("Name: " + kitty.name);
+purr("Age: " + kitty.age);
+purr("Color: " + kitty.color);
+
+// CORRECT: Another example with a different variable name
+purr("\n2. Another object example:");
+catlt pet = {
+    name: "Buddy",
+    type: "Dog",
+    age: 5
+};
+purr("Pet details:");
+purr("Name: " + pet.name);
+purr("Type: " + pet.type);
+purr("Age: " + pet.age);
+
+// CORRECT: Simple object with minimal properties
+purr("\n3. Simple object example:");
+catlt simpleObj = {
+    name: "Simple Object",
+    value: 42
+};
+purr("Object name: " + simpleObj.name);
+purr("Object value: " + simpleObj.value);
+
+// NOTE: The following would cause an error because 'cat' is a reserved keyword in Mew
+// It's used for function declarations, for example: cat functionName() {...}
+/*
+purr("\nThis would cause an error:");
+catlt cat = {
+    name: "Error Cat",
+    age: 2
+};
+*/
+
+// ADVANCED: Nested objects
+purr("\n4. Nested object example:");
+catlt person = {
+    name: "Alice",
+    age: 30,
+    address: {
+        street: "123 Main St",
+        city: "Mewville",
+        zip: "12345"
+    },
+    pets: ["Whiskers", "Fluffy", "Buddy"]
+};
+purr("Person name: " + person.name);
+purr("Person's city: " + person.address.city);
+purr("Person's first pet: " + person.pets[0]);
+
+// ADVANCED: Array of objects
+purr("\n5. Array of objects example:");
+catlt pets = [
+    { name: "Whiskers", type: "Cat", age: 3 },
+    { name: "Buddy", type: "Dog", age: 5 },
+    { name: "Tweety", type: "Bird", age: 1 }
+];
+purr("Number of pets: " + pets.length);
+fur (catlt i = 0; i < pets.length; i++) {
+    purr("Pet " + (i+1) + ": " + pets[i].name + " (" + pets[i].type + ")");
+}
+
+// ADVANCED: Creating objects with multiple properties
+purr("\n6. Object with multiple properties:");
+catlt userProfile = {
+    name: "John Doe",
+    email: "john@example.com",
+    isActive: true,
+    score: 85,
+    preferences: {
+        darkMode: true,
+        notifications: false
+    }
+};
+purr("User: " + userProfile.name);
+purr("Email: " + userProfile.email); 
+purr("Active: " + userProfile.isActive);
+purr("Score: " + userProfile.score);
+purr("Dark mode: " + userProfile.preferences.darkMode);
+
+// ADVANCED: Functions with objects as parameters
+purr("\n7. Functions with objects:");
+
+// Create a function that takes an object parameter
+cat displayPet(petObj) {
+    purr("Pet Info: " + petObj.name + " is a " + petObj.type + " and is " + petObj.age + " years old");
+    
+    catlt ageStatus = "";
+    meow? (petObj.age > 3) {
+        ageStatus = "older";
+    } hiss {
+        ageStatus = "younger";
+    }
+    
+    return petObj.name + " is " + ageStatus + " than average";
+}
+
+// Function that works with objects
+cat processPerson(name, age) {
+    catlt personObj = {
+        name: name,
+        age: age,
+        isAdult: age >= 18
+    };
+    
+    purr("Person created: " + personObj.name);
+    purr("Age: " + personObj.age);
+    
+    meow? (personObj.isAdult) {
+        return "Adult";
+    } hiss {
+        return "Minor";
+    }
+}
+
+// Use the functions
+catlt myPet = { name: "Luna", type: "Cat", age: 2 };
+catlt petStatus = displayPet(myPet);
+purr("Status: " + petStatus);
+
+// Use person processing function
+catlt status = processPerson("Bob", 25);
+purr("Person status: " + status);
+
+purr("\nAll examples completed successfully!"); 

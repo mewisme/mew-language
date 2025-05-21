@@ -77,6 +77,8 @@ pub enum TokenKind {
   StarEqual,
   SlashEqual,
   PercentEqual,
+  Increment,
+  Decrement,
 
   // Punctuation
   LeftParen,
@@ -178,6 +180,8 @@ impl MewLexer {
       '+' => {
         if self.match_char('=') {
           self.add_token(TokenKind::PlusEqual)
+        } else if self.match_char('+') {
+          self.add_token(TokenKind::Increment)
         } else {
           self.add_token(TokenKind::Plus)
         }
@@ -185,6 +189,8 @@ impl MewLexer {
       '-' => {
         if self.match_char('=') {
           self.add_token(TokenKind::MinusEqual)
+        } else if self.match_char('-') {
+          self.add_token(TokenKind::Decrement)
         } else {
           self.add_token(TokenKind::Minus)
         }
@@ -200,6 +206,22 @@ impl MewLexer {
         if self.match_char('/') {
           // Comment goes until end of line
           while self.peek() != '\n' && !self.is_at_end() {
+            self.advance();
+          }
+        } else if self.match_char('*') {
+          // Multi-line comment
+          loop {
+            // Handle nested comments and ensure proper advancing
+            if self.is_at_end() {
+              return Err(MewError::syntax("Unterminated multi-line comment"));
+            } else if self.peek() == '*' && self.peek_next() == '/' {
+              self.advance(); // consume '*'
+              self.advance(); // consume '/'
+              break;
+            } else if self.peek() == '\n' {
+              self.line += 1;
+              self.column = 1;
+            }
             self.advance();
           }
         } else if self.match_char('=') {
