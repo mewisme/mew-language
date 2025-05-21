@@ -30,12 +30,14 @@ A cat-themed programming language with a runtime written in Rust. Mew is an inte
 
 1. For Windows users, run the following command in PowerShell:
     ```powershell
-    powershell -c "irm https://mewis.me/install.ps1 | iex"
+    powershell -c "irm mewis.me/install.ps1 | iex"
     ```
 
-2. For Linux and macOS users, run the following command in your terminal:
+2. For Linux and macOS users
+- Linux users — The `unzip` package is required to install Mew. Use `sudo apt install unzip` to install the package.
+- Run the following command in your terminal:
     ```bash
-    curl -fsSL https://mewis.me/install.sh | bash
+    curl -fsSL mewis.me/install.sh | bash
     ```
 
 ## Language Documentation
