@@ -127,8 +127,12 @@ jobs:
         run: |
           sudo apt-get install -y pkg-config libssl-dev
           if [[ "${{ matrix.target }}" == "i686-unknown-linux-gnu" ]]; then
+            sudo dpkg --add-architecture i386
+            sudo apt-get update
             sudo apt-get install -y libssl-dev:i386
           elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            sudo dpkg --add-architecture arm64
+            sudo apt-get update
             sudo apt-get install -y libssl-dev:arm64
           fi
 
