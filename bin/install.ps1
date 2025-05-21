@@ -2,10 +2,6 @@
 # This script downloads the latest release of Mew language from GitHub,
 # extracts it to ~/.mew, and adds it to your PATH environment variable
 
-# Show a welcome message
-Write-Host "   Mew Language Installer" -ForegroundColor Cyan
-Write-Host "============================" -ForegroundColor Cyan
-
 $Arch = [System.Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")
 $Is64Bit = [System.Environment]::Is64BitOperatingSystem
 $IsArm = $Arch -match "ARM"
@@ -24,6 +20,7 @@ else {
 # Define installation directory
 $installDir = Join-Path $env:USERPROFILE ".mew"
 $zipPath = Join-Path $env:TEMP "mew-$ArchFile.zip"
+$latestVersion = ""
 
 # Create installation directory if it doesn't exist
 if (-not (Test-Path $installDir)) {
@@ -46,9 +43,7 @@ try {
   }
     
   $downloadUrl = $windowsAsset.browser_download_url
-  $version = $release.tag_name
-    
-  Write-Host "Found Mew programming language version $version" -ForegroundColor Green
+  $latestVersion = $release.tag_name
 }
 catch {
   Write-Host "Error fetching release information: $_" -ForegroundColor Red
@@ -67,6 +62,11 @@ catch {
 Get-Process | Where-Object {
   $_.Modules.FileName -contains (Join-Path $installDir "mew.exe") 
 } | Stop-Process -Force
+
+
+Write-Host "   Mew Language Installer" -ForegroundColor Cyan
+Write-Host "============================" -ForegroundColor Cyan
+Write-Host "Found Mew programming language version $latestVersion" -ForegroundColor Green
 
 # Remove old files from install directory (but keep any user files)
 Remove-Item -Path (Join-Path $installDir "mew.exe") -Force -ErrorAction SilentlyContinue
