@@ -83,10 +83,6 @@ jobs:
 
           # Linux builds
           - os: ubuntu-latest
-            target: i686-unknown-linux-gnu
-            artifact_name: mew-linux-x86
-            asset_name: mew-linux-x86.zip
-          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: mew-linux-x86_64
             asset_name: mew-linux-x86_64.zip
@@ -117,52 +113,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-multilib g++-multilib
+          sudo apt-get install -y gcc-multilib g++-multilib pkg-config libssl-dev
           if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libssl-dev:arm64
           fi
-
-      - name: Install OpenSSL dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y pkg-config libssl-dev
-          if [[ "${{ matrix.target }}" == "i686-unknown-linux-gnu" ]]; then
-            sudo dpkg --add-architecture i386
-
-            # Sửa sources.list để hỗ trợ kiến trúc i386
-            sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
-            echo "deb [arch=i386] http://archive.ubuntu.com/ubuntu noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/i386.list
-            echo "deb [arch=i386] http://archive.ubuntu.com/ubuntu noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/i386.list
-            echo "deb [arch=i386] http://security.ubuntu.com/ubuntu noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/i386.list
-
-            sudo apt-get update
-            sudo apt-get install -y libssl-dev:i386
-
-          elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-            sudo dpkg --add-architecture arm64
-
-            # Sửa sources.list để hỗ trợ kiến trúc arm64
-            sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/arm64.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/arm64.list
-
-            sudo apt-get update
-            sudo apt-get install -y libssl-dev:arm64
-          fi
-
-      - name: Install OpenSSL (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install openssl@3
-          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
-
-      - name: Install vcpkg and OpenSSL (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          vcpkg integrate install
-          vcpkg install openssl:${{ matrix.target == 'i686-pc-windows-msvc' && 'x86-windows' || (matrix.target == 'aarch64-pc-windows-msvc' && 'arm64-windows' || 'x64-windows') }}
-          echo "OPENSSL_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\${{ matrix.target == 'i686-pc-windows-msvc' && 'x86-windows' || (matrix.target == 'aarch64-pc-windows-msvc' && 'arm64-windows' || 'x64-windows') }}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Enable colored output
         run: echo "CARGO_TERM_COLOR=always" >> $GITHUB_ENV
@@ -223,7 +177,6 @@ jobs:
             mew-windows-x86/*.zip
             mew-windows-x86_64/*.zip
             mew-windows-arm64/*.zip
-            mew-linux-x86/*.zip
             mew-linux-x86_64/*.zip
             mew-linux-arm64/*.zip
             mew-macos-x86_64/*.zip
