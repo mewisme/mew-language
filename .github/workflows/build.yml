@@ -21,7 +21,7 @@ jobs:
     outputs:
       version: ${{ steps.get-version.outputs.version }}
       tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
-      should_release: ${{ steps.check-tag.outputs.should_release }}
+      should_release: ${{ steps.check-release.outputs.should_release }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,12 +40,23 @@ jobs:
           VERSION="${{ steps.get-version.outputs.version }}"
           if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION"; then
             echo "tag_exists=true" >> $GITHUB_OUTPUT
-            echo "should_release=false" >> $GITHUB_OUTPUT
             echo "Tag v$VERSION already exists"
           else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
-            echo "should_release=true" >> $GITHUB_OUTPUT
             echo "Tag v$VERSION doesn't exist, will create it"
+          fi
+
+      - name: Check if release exists
+        id: check-release
+        run: |
+          VERSION="${{ steps.get-version.outputs.version }}"
+          RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/${{ github.repository }}/releases/tags/v$VERSION)
+          if [[ "$RELEASE_EXISTS" == "200" ]]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Release for v$VERSION already exists, stopping workflow"
+          else
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "No release found for v$VERSION, continuing with build and release"
           fi
 
       - name: Create and push tag
