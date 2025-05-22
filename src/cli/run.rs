@@ -54,7 +54,6 @@ pub fn run_file(file_path: &str) -> crate::error::MewResult<()> {
 pub fn run_repl() -> MewResult<()> {
   println!("🐱 Mew Programming Language v{}", env!("CARGO_PKG_VERSION"));
   println!("\nType 'exit' or press Ctrl+C to exit");
-  println!("Browser-like REPL mode: variables and functions persist between lines");
 
   let mut rl = DefaultEditor::new().unwrap();
   let helper = ();
